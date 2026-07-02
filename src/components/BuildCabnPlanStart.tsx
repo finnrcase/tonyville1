@@ -170,23 +170,15 @@ export function BuildCabnPlanStart({
                     href={`/?use=${encoded(option.id)}`}
                     scroll={false}
                     aria-current={active ? "true" : undefined}
-                    className={`group min-h-24 rounded-[24px] border p-4 text-left transition duration-200 hover:-translate-y-1 ${
-                      active
-                        ? "border-[#203b2c] bg-[#203b2c] text-white shadow-[0_18px_45px_rgba(32,59,44,0.22)]"
-                        : "border-white/80 bg-white/86 text-ink shadow-[0_14px_35px_rgba(22,24,23,0.07)]"
-                    }`}
+                    className={optionCardClass(active, "group min-h-24")}
                   >
                     <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                          active ? "bg-white/14" : "bg-[#eef3ef]"
-                        }`}
-                      >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-sunken text-brand">
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </div>
                       <div>
-                        <div className="font-semibold">{option.label}</div>
-                        <p className="mt-1 text-sm leading-5 opacity-75">
+                        <div className="font-semibold text-ink">{option.label}</div>
+                        <p className="mt-1 text-sm leading-5 text-ink-soft">
                           {option.description}
                         </p>
                       </div>
@@ -197,7 +189,7 @@ export function BuildCabnPlanStart({
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[34px] border border-white/80 bg-white/92 shadow-[0_30px_90px_rgba(22,24,23,0.16)] backdrop-blur-xl">
+          <div className="overflow-hidden rounded-[34px] border border-hairline bg-surface shadow-[0_30px_90px_rgba(22,24,23,0.10)]">
             <div
               aria-label={imageAlt}
               role="img"
@@ -224,7 +216,7 @@ export function BuildCabnPlanStart({
                       </span>
                     ))}
                   </div>
-                  <h2 className="text-3xl font-semibold leading-tight sm:text-4xl">
+                  <h2 className="font-display text-3xl font-medium leading-tight sm:text-4xl">
                     {headline}
                   </h2>
                   <p className="mt-3 max-w-lg text-sm font-medium leading-6 text-white/82 sm:text-base">
@@ -297,11 +289,7 @@ export function BuildCabnPlanStart({
                         )}`}
                         scroll={false}
                         aria-current={active ? "true" : undefined}
-                        className={`rounded-[22px] border p-3 text-left transition duration-200 hover:-translate-y-0.5 ${
-                          active
-                            ? "border-[#203b2c] bg-white shadow-[0_14px_34px_rgba(22,24,23,0.10)]"
-                            : "border-[#e6e9e4] bg-[#fbfaf7]"
-                        }`}
+                        className={optionCardClass(active, "p-3")}
                       >
                         <div className={`mb-3 h-9 rounded-2xl ${optionAccentClass(style)}`} />
                         <div className="text-sm font-semibold text-ink">
@@ -316,8 +304,8 @@ export function BuildCabnPlanStart({
                 </div>
               </div>
 
-              <div className="rounded-[26px] border border-[#e8ece6] bg-[#fbfaf7] p-4 sm:p-5">
-                <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase text-[#2b6f83]">
+              <div className="rounded-[26px] border border-hairline bg-sunken p-4 sm:p-5">
+                <div className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase text-ink-faint">
                   <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                   Phase 2 · Make It Yours
                 </div>
@@ -326,7 +314,7 @@ export function BuildCabnPlanStart({
                     const Icon = phaseTwoIcons[index] ?? MapPinned;
 
                     return (
-                      <div key={scene.id} className="rounded-2xl bg-white p-3">
+                      <div key={scene.id} className="rounded-2xl bg-surface p-3">
                         <Icon className="mb-3 h-5 w-5 text-brand" aria-hidden="true" />
                         <div className="text-sm font-semibold">{scene.title}</div>
                         <p className="mt-1 text-xs leading-5 text-ink-soft">
@@ -343,17 +331,11 @@ export function BuildCabnPlanStart({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-                <Link
-                  href={propertyFitHref}
-                  className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(32,59,44,0.22)] transition hover:-translate-y-0.5 hover:bg-[#2e523e]"
-                >
+                <Link href={propertyFitHref} className={buttonClass("primary", "lg")}>
                   {propertyCtaScene?.title}
                   <ArrowRight className="h-5 w-5" aria-hidden="true" />
                 </Link>
-                <Link
-                  href={landSearchHref}
-                  className="inline-flex h-14 items-center justify-center rounded-2xl bg-[#eef3ef] px-5 text-sm font-semibold text-brand transition hover:-translate-y-0.5 hover:bg-[#e4ece6]"
-                >
+                <Link href={landSearchHref} className={buttonClass("secondary", "lg")}>
                   Help me find land
                 </Link>
               </div>
