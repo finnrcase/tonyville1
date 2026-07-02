@@ -38,7 +38,6 @@ type CustomizationSection = {
   title: string;
   description: string;
   icon: LucideIcon;
-  placeholder?: boolean;
 };
 
 const customizationSections: CustomizationSection[] = [
@@ -63,16 +62,14 @@ const customizationSections: CustomizationSection[] = [
   {
     key: "builtInsWall",
     title: "Built-ins Position",
-    description: "Placeholder for storage, shelving, or millwork planning.",
+    description: "Choose the wall that should carry storage, shelving, or millwork.",
     icon: PanelsTopLeft,
-    placeholder: true,
   },
   {
     key: "majorViewWall",
     title: "Major View Wall",
-    description: "Placeholder for the wall that should face the best view.",
+    description: "Choose the wall that should open toward the strongest view.",
     icon: Eye,
-    placeholder: true,
   },
 ];
 
@@ -112,6 +109,7 @@ function recoveryPanel() {
 }
 
 export function EditCabnApp() {
+  const [hasLoadedPlan, setHasLoadedPlan] = useState(false);
   const [plan, setPlan] = useState<SelectedRoomPlan | null>(null);
   const [customization, setCustomization] = useState<CABNCustomization>(
     DEFAULT_CABN_CUSTOMIZATION,
@@ -136,6 +134,7 @@ export function EditCabnApp() {
       setCustomization(
         normalizeCABNCustomization(selectedPlan?.customization ?? null),
       );
+      setHasLoadedPlan(true);
     }, 0);
 
     return () => {
@@ -160,6 +159,22 @@ export function EditCabnApp() {
       saveSelectedRoomPlacement(placement);
     }
     window.location.assign("/review-cabn-plan");
+  }
+
+  if (!hasLoadedPlan) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f7f6f2] p-5 text-[#111817]">
+        <div className="w-full max-w-sm rounded-[32px] border border-white/80 bg-white p-6 text-center shadow-[0_28px_90px_rgba(22,24,23,0.14)]">
+          <div className="mx-auto h-2 w-28 overflow-hidden rounded-full bg-[#edf0ec]">
+            <div className="soft-pulse h-full w-1/2 rounded-full bg-[#203b2c]" />
+          </div>
+          <h1 className="mt-5 text-xl font-semibold">Loading room plan</h1>
+          <p className="mt-2 text-sm leading-6 text-[#66716a]">
+            Preparing the selected lot, room placement, and orientation.
+          </p>
+        </div>
+      </main>
+    );
   }
 
   if (!plan || !placement) return recoveryPanel();
@@ -226,11 +241,6 @@ export function EditCabnApp() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-base font-semibold">{section.title}</h2>
-                          {section.placeholder ? (
-                            <span className="rounded-full bg-[#f7f6f2] px-2 py-1 text-[10px] font-semibold uppercase text-[#7a827c]">
-                              Placeholder
-                            </span>
-                          ) : null}
                         </div>
                         <p className="mt-1 text-sm leading-6 text-[#66716a]">
                           {section.description}

@@ -180,11 +180,11 @@ export function ReviewCabnPlanApp() {
         <section className="rounded-[36px] border border-white/80 bg-white p-5 shadow-[0_28px_90px_rgba(22,24,23,0.12)] sm:p-7">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <Link
-              href="/edit-cabn"
+              href="/customize-room"
               className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#f7f6f2] px-3 text-sm font-semibold text-[#27302b] transition hover:bg-[#eef3ef]"
             >
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to Edit CABN
+              Back to Customize Room
             </Link>
             <span className="rounded-full bg-[#eef7f8] px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#2b6f83]">
               Review

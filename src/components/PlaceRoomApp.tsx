@@ -535,7 +535,7 @@ export function PlaceRoomApp({ mapboxToken }: PlaceRoomAppProps) {
           : ["Placement passed current early-screening rules."],
       }),
     );
-    window.location.assign("/edit-cabn");
+    window.location.assign("/customize-room");
   }
 
   if (!plan) {
