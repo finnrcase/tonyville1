@@ -50,3 +50,5 @@ node_modules/
 .DS_Store
 .env
 *.tsbuildinfo
+CABN-clean/
+CABNNN/

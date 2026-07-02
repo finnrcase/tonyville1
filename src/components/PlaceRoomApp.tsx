@@ -745,7 +745,7 @@ export function PlaceRoomApp({ mapboxToken }: PlaceRoomAppProps) {
               <li>Room footprint must stay inside the lot boundary.</li>
               <li>Keep at least 5 ft from known structures.</li>
               <li>Do not overlap known existing structures.</li>
-              <li>Basic setback placeholder uses the selected model rules.</li>
+              <li>Basic setback screening uses the selected model rules.</li>
             </ul>
           </section>
 

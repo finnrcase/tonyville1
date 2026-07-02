@@ -197,7 +197,7 @@ function setbackRule(
       ruleId: "setbacks",
       label: "Setbacks",
       status: "needs_review",
-      message: `Room is inside the ${config.setback.green.minFeet} ft placeholder setback buffer.`,
+      message: `Room is inside the ${config.setback.green.minFeet} ft early-screening setback buffer.`,
       confidence: "medium",
       evidence: { distanceFeet: distance },
     });
@@ -207,7 +207,7 @@ function setbackRule(
     ruleId: "setbacks",
     label: "Setbacks",
     status: "likely",
-    message: "Room clears the placeholder setback threshold.",
+    message: "Room clears the early-screening setback threshold.",
     confidence: "medium",
     evidence: { distanceFeet: distance },
   });

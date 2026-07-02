@@ -48,6 +48,13 @@ function metadataString(
   return typeof value === "string" ? value : fallback;
 }
 
+function homepageUseCaseLabel(option: CABNSceneOption) {
+  if (option.id === "guest-room") return "Guest Room";
+  if (option.id === "rental") return "Rental / ADU";
+  if (option.id === "creative-space") return "Creative Space";
+  return option.label;
+}
+
 export function BuildCabnPlanStart({
   initialUseCase,
   initialStyle,
@@ -85,26 +92,23 @@ export function BuildCabnPlanStart({
 
   return (
     <main className="min-h-screen bg-canvas text-ink">
-      <section className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col px-5 py-6 sm:px-8 lg:px-10">
-        <header className="flex items-center justify-between pb-5">
+      <section className="mx-auto grid min-h-screen w-full max-w-[1440px] gap-8 px-5 py-6 sm:px-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-12 lg:px-10">
+        <div className="mx-auto flex w-full max-w-xl flex-col lg:mx-0">
           <Link
             href="/"
-            className="text-sm font-semibold uppercase tracking-[0.32em] text-brand"
+            className="mb-14 text-sm font-semibold uppercase tracking-[0.34em] text-brand"
             aria-label="CABN home"
           >
             CABN
           </Link>
-        </header>
 
-        <div className="grid flex-1 gap-8 pb-8 pt-4 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:gap-12">
-          <div className="mx-auto w-full max-w-xl lg:mx-0">
+          <div>
             <Pill className="mb-6 bg-surface/80">PHASE 1 · DREAM</Pill>
-            <h1 className="max-w-[11ch] text-5xl font-medium leading-[0.95] text-ink sm:text-6xl xl:text-7xl">
+            <h1 className="max-w-[11ch] font-sans text-5xl font-medium leading-[0.95] text-ink sm:text-6xl xl:text-7xl">
               What do you want your extra space to become?
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-8 text-ink-soft">
-              Start with a room. We&apos;ll help you find the perfect fit for
-              your property.
+              Start with a room. We&apos;ll help you fit it to your property.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -137,7 +141,9 @@ export function BuildCabnPlanStart({
                         <Icon className="h-5 w-5" aria-hidden="true" />
                       </div>
                       <div>
-                        <div className="font-semibold">{option.label}</div>
+                        <div className="font-semibold">
+                          {homepageUseCaseLabel(option)}
+                        </div>
                         <p
                           className={[
                             "mt-1 text-sm leading-5",
@@ -152,61 +158,8 @@ export function BuildCabnPlanStart({
                 );
               })}
             </div>
-          </div>
 
-          <div className="mx-auto grid w-full max-w-3xl gap-4 lg:mx-0">
-            <div className="relative min-h-[520px] overflow-hidden rounded-[36px] bg-sunken shadow-[0_34px_90px_rgba(22,24,23,0.12)] sm:min-h-[640px]">
-              <Image
-                src={page1photo}
-                alt={headline}
-                fill
-                priority
-                sizes="(min-width: 1024px) 54vw, 100vw"
-                className="object-cover"
-                placeholder="blur"
-              />
-
-              <div className="absolute inset-x-4 bottom-4 rounded-[28px] border border-white/45 bg-[#fbf7ed]/88 p-5 shadow-[0_24px_70px_rgba(22,24,23,0.18)] backdrop-blur-md sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[360px] sm:p-6">
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                      Recommended Model:
-                    </div>
-                    <div className="mt-1 text-2xl font-semibold text-ink">
-                      {selectedModel.name}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                        Starting Price:
-                      </div>
-                      <div className="mt-1 text-base font-semibold text-ink">
-                        {startingPrice}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
-                        Best-Fit Style:
-                      </div>
-                      <div className="mt-1 text-base font-semibold text-ink">
-                        {selectedStyle?.label ?? "Modern"}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-t border-hairline pt-4 text-sm font-medium leading-6 text-ink-soft">
-                    <p>
-                      {selectedModel.widthFt} × {selectedModel.lengthFt} ft ·{" "}
-                      {selectedModel.squareFeet} sq ft
-                    </p>
-                    <p>Site work and permits separate</p>
-                    <p>CABN recommended</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-[1fr_0.72fr]">
+            <div className="mt-8 grid gap-3 sm:grid-cols-[1fr_0.72fr]">
               <Link href={propertyFitHref} className={buttonClass("primary", "lg", "w-full")}>
                 See how this fits my property
                 <ArrowRight className="h-5 w-5" aria-hidden="true" />
@@ -221,6 +174,41 @@ export function BuildCabnPlanStart({
               >
                 Help me find land
               </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mx-auto w-full max-w-3xl lg:mx-0">
+          <div className="relative min-h-[520px] overflow-hidden rounded-[36px] bg-sunken shadow-[0_34px_90px_rgba(22,24,23,0.12)] sm:min-h-[640px]">
+            <Image
+              src={page1photo}
+              alt={headline}
+              fill
+              priority
+              sizes="(min-width: 1024px) 54vw, 100vw"
+              className="object-cover"
+              placeholder="blur"
+            />
+
+            <div className="absolute inset-x-4 bottom-4 rounded-[28px] border border-white/45 bg-[#fbf7ed]/88 p-5 shadow-[0_24px_70px_rgba(22,24,23,0.18)] backdrop-blur-md sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[340px] sm:p-6">
+              <div className="space-y-4">
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-faint">
+                    Recommended Model
+                  </div>
+                  <div className="mt-1 text-2xl font-semibold text-ink">
+                    {selectedModel.name}
+                  </div>
+                </div>
+                <div className="border-t border-hairline pt-4 text-sm font-medium leading-6 text-ink-soft">
+                  <p>
+                    {selectedModel.widthFt} × {selectedModel.lengthFt} ft ·{" "}
+                    {selectedModel.squareFeet} sq ft
+                  </p>
+                  <p>Starting at {startingPrice}</p>
+                  <p>Site work and permits separate</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
