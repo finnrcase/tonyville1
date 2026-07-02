@@ -10,7 +10,6 @@ export default async function Home({ searchParams }: HomeProps) {
   return (
     <BuildCabnPlanStart
       initialUseCase={params?.use}
-      initialStyle={params?.style}
     />
   );
 }

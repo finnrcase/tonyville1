@@ -23,7 +23,6 @@ import { Pill } from "@/components/ui/Pill";
 
 type BuildCabnPlanStartProps = {
   initialUseCase?: string | string[];
-  initialStyle?: string | string[];
 };
 
 const iconMap: Record<string, LucideIcon> = {
@@ -57,7 +56,6 @@ function homepageUseCaseLabel(option: CABNSceneOption) {
 
 export function BuildCabnPlanStart({
   initialUseCase,
-  initialStyle,
 }: BuildCabnPlanStartProps) {
   const useCaseScene = getCabnScene("dream_use_case");
   const activeUseCase = getSceneOption("dream_use_case", initialUseCase);
@@ -66,15 +64,12 @@ export function BuildCabnPlanStart({
     "recommendedStyle",
     "modern",
   );
-  const selectedStyle =
-    getSceneOption("dream_style", initialStyle) ??
-    getSceneOption("dream_style", recommendedStyle);
   const selectedModel = getCabnModel(
     metadataString(activeUseCase, "modelId", "cabn-160"),
   );
   const propertyFitHref = `/property-fit?model=${selectedModel.id}&use=${encoded(
     activeUseCase?.id ?? "office",
-  )}&style=${encoded(selectedStyle?.id ?? recommendedStyle)}`;
+  )}&style=${encoded(recommendedStyle)}`;
   const landSearchModelSize = ([120, 140, 160, 200] as number[]).includes(
     selectedModel.squareFeet,
   )
@@ -187,7 +182,6 @@ export function BuildCabnPlanStart({
               priority
               sizes="(min-width: 1024px) 54vw, 100vw"
               className="object-cover"
-              placeholder="blur"
             />
 
             <div className="absolute inset-x-4 bottom-4 rounded-[28px] border border-white/45 bg-[#fbf7ed]/88 p-5 shadow-[0_24px_70px_rgba(22,24,23,0.18)] backdrop-blur-md sm:inset-x-auto sm:bottom-6 sm:right-6 sm:w-[340px] sm:p-6">
