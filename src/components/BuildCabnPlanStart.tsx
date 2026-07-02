@@ -193,7 +193,7 @@ export function BuildCabnPlanStart({
             <div
               aria-label={imageAlt}
               role="img"
-              className="relative min-h-[320px] overflow-hidden bg-[#dfe8e3]"
+              className="relative min-h-[320px] overflow-hidden bg-sunken"
             >
               <div
                 aria-hidden="true"
@@ -269,7 +269,7 @@ export function BuildCabnPlanStart({
               <div>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-sm font-semibold text-[#27302b]">
+                    <div className="text-sm font-semibold text-ink">
                       {styleScene?.title}
                     </div>
                     <p className="mt-1 text-sm font-medium text-ink-soft">
