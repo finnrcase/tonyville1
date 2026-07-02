@@ -134,7 +134,7 @@ export function BuildCabnPlanStart({
             <div>
               <div className="font-display text-base font-medium">Tonyville</div>
               <div className="text-xs font-medium text-ink-faint">
-                Phase 1 Dream · Phase 2 Make It Yours
+                Phase 1 Dream · Phase 2 Make It Yours · Live
               </div>
             </div>
           </div>
