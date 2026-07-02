@@ -21,8 +21,8 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Tonyville",
-  description: "Find land that fits Tony's tiny homes.",
+  title: "CABN",
+  description: "Start with a CABN room, then see how it fits your property.",
 };
 
 export default function RootLayout({

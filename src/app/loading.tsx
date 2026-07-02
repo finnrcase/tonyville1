@@ -1,16 +1,13 @@
-import { Home, MapPinned } from "lucide-react";
+import { MapPinned } from "lucide-react";
 
 export default function Loading() {
   return (
     <main className="min-h-screen bg-[#f7f6f2] text-[#161817]">
       <div className="relative min-h-screen overflow-hidden bg-[#d7dfcf]">
         <div className="absolute left-4 top-4 z-10 flex items-center gap-3 rounded-3xl border border-white/70 bg-white/88 px-4 py-3 shadow-[0_18px_55px_rgba(22,24,23,0.14)] backdrop-blur-2xl">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#203b2c] text-white">
-            <Home className="h-5 w-5" aria-hidden="true" />
-          </div>
           <div>
-            <div className="text-[22px] font-semibold leading-6">
-              Tonyville
+            <div className="text-sm font-semibold uppercase leading-6 tracking-[0.32em] text-[#203b2c]">
+              CABN
             </div>
             <div className="mt-2 h-3 w-48 rounded-full bg-[#edf0ec]" />
           </div>
@@ -35,10 +32,10 @@ export default function Loading() {
               aria-hidden="true"
             />
             <h1 className="mt-3 text-base font-semibold text-[#111817]">
-              Loading Tonyville
+              Loading CABN
             </h1>
             <p className="mt-2 text-sm text-[#66716a]">
-              Preparing parcel matches and the map experience.
+              Preparing your room and property experience.
             </p>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#edf0ec]">
               <div className="soft-pulse h-full w-1/2 rounded-full bg-[#b9d7e7]" />
