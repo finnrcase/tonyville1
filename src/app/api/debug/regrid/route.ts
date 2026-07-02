@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { debugRegrid } from "@/lib/regrid";
+import { blockDebugRouteInProduction } from "@/lib/debugGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,9 @@ function readNumber(value: string | null, fallback: number) {
 }
 
 export async function GET(request: NextRequest) {
+  const blocked = blockDebugRouteInProduction();
+  if (blocked) return blocked;
+
   const lat = readNumber(request.nextUrl.searchParams.get("lat"), 30.2672);
   const lng = readNumber(request.nextUrl.searchParams.get("lng"), -97.7431);
   const radiusMiles = Math.min(

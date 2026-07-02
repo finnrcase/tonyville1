@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { laCountyParcelProvider } from "@/lib/providers/laCountyParcelProvider";
+import { blockDebugRouteInProduction } from "@/lib/debugGuard";
 
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,9 @@ function numberParam(value: string | null, fallback: number) {
 }
 
 export async function GET(request: NextRequest) {
+  const blocked = blockDebugRouteInProduction();
+  if (blocked) return blocked;
+
   const lat = numberParam(request.nextUrl.searchParams.get("lat"), 34.0522);
   const lng = numberParam(request.nextUrl.searchParams.get("lng"), -118.2437);
   const debug = await laCountyParcelProvider.debug({ lat, lng });
