@@ -22,7 +22,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "CABN",
-  description: "Start with a CABN room, then see how it fits your property.",
+  description: "Intelligent property planning for backyard rooms.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: [{ url: "/favicon.ico", type: "image/x-icon" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({

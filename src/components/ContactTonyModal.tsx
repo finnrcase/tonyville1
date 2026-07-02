@@ -3,6 +3,8 @@ import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { createLead } from "@/lib/data/leads";
 import { validateLead } from "@/lib/data/mappers";
+import { inputClass } from "@/components/ui/Field";
+import { buttonClass } from "@/components/ui/Button";
 import type { ScoredParcel } from "@/types/parcel";
 
 export function ContactTonyModal({
@@ -33,29 +35,29 @@ export function ContactTonyModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#111817]/35 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-[28px] border border-white/70 bg-white p-5 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-[28px] border border-hairline bg-surface p-6 shadow-[0_30px_90px_rgba(22,24,23,0.22)]">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#111817]">Ask Tony about this lot</h2>
-          <button type="button" onClick={onClose} aria-label="Close">
-            <X className="h-5 w-5 text-[#27302b]" />
+          <h2 className="font-display text-xl font-medium text-ink">Ask Tony about this lot</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-ink-soft transition hover:text-ink">
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <p className="mt-1 text-xs text-[#66716a]">
+        <p className="mt-1.5 text-xs text-ink-soft">
           {parcel.address}, {parcel.city}, {parcel.state}
         </p>
         {sent ? (
-          <p className="mt-4 text-sm font-semibold text-[#203b2c]">
+          <p className="mt-5 text-sm font-semibold text-brand">
             Thanks — Tony will be in touch.
           </p>
         ) : (
-          <form onSubmit={onSubmit} className="mt-4 grid gap-3">
+          <form onSubmit={onSubmit} className="mt-5 grid gap-3">
             <input
               required
               placeholder="Name"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="rounded-2xl border border-[#e5e9e4] px-4 py-3 text-sm"
+              className={inputClass}
             />
             <input
               required
@@ -63,13 +65,13 @@ export function ContactTonyModal({
               placeholder="Email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="rounded-2xl border border-[#e5e9e4] px-4 py-3 text-sm"
+              className={inputClass}
             />
             <input
               placeholder="Phone (optional)"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              className="rounded-2xl border border-[#e5e9e4] px-4 py-3 text-sm"
+              className={inputClass}
             />
             <textarea
               required
@@ -77,19 +79,16 @@ export function ContactTonyModal({
               rows={4}
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
-              className="rounded-2xl border border-[#e5e9e4] px-4 py-3 text-sm"
+              className={`${inputClass} h-auto min-h-28 py-3`}
             />
             {errors.length > 0 ? (
-              <ul className="text-xs text-[#8b3f35]">
+              <ul className="grid gap-1 text-xs text-risk">
                 {errors.map((error) => (
                   <li key={error}>{error}</li>
                 ))}
               </ul>
             ) : null}
-            <button
-              type="submit"
-              className="rounded-2xl bg-[#203b2c] px-4 py-3 text-sm font-semibold text-white"
-            >
+            <button type="submit" className={buttonClass("primary", "lg", "w-full")}>
               Send to Tony
             </button>
           </form>
