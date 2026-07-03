@@ -4,7 +4,11 @@
       "Bash(git rm *)",
       "Bash(npx eslint *)",
       "Bash(echo \"lint-exit:$?\")",
-      "Bash(grep -vE \"^#|^$\")"
+      "Bash(grep -vE \"^#|^$\")",
+      "Bash(npx vitest *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3177/edit-cabn)",
+      "Bash(node drive.mjs)",
+      "Bash(PORT=3177 npm start)"
     ]
   }
 }

@@ -13,7 +13,7 @@ import {
   Table2,
   type LucideIcon,
 } from "lucide-react";
-import { Cabn3DPreview } from "@/components/Cabn3DPreview";
+import { CabnInteriorPreview } from "@/components/CabnInteriorPreview";
 import { getCabnModel } from "@/lib/cabnModels";
 import { getCabnScene } from "@/lib/cabnScenes";
 import {
@@ -67,7 +67,7 @@ const customizationSections: CustomizationSection[] = [
 ];
 
 function wallLabel(wall: CABNWall) {
-  return `${wall[0].toUpperCase()}${wall.slice(1)} wall`;
+  return `${wall[0].toUpperCase()}${wall.slice(1)} Wall`;
 }
 
 function recoveryPanel() {
@@ -285,20 +285,15 @@ export function EditCabnApp() {
             <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7a827c]">
-                  Bird&apos;s-Eye 3D Preview
+                  Design Your CABN
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold">
                   {selectedModel.name} on {plan.lot.title}
                 </h2>
               </div>
-              <div className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[#56625c] shadow-sm">
-                {Math.round(placement.rotationDeg)}° rotation
-              </div>
             </div>
-            <Cabn3DPreview
-              plan={plan}
+            <CabnInteriorPreview
               model={selectedModel}
-              placement={placement}
               customization={customization}
               placementInferred={placementInferred}
             />
