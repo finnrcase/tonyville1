@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git rm *)",
       "Bash(npx eslint *)",
-      "Bash(echo \"lint-exit:$?\")"
+      "Bash(echo \"lint-exit:$?\")",
+      "Bash(grep -vE \"^#|^$\")"
     ]
   }
 }

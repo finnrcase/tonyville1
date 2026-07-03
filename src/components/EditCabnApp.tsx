@@ -7,14 +7,13 @@ import {
   ArrowRight,
   Check,
   Compass,
-  Eye,
   Home,
   PanelsTopLeft,
   Square,
   Table2,
   type LucideIcon,
 } from "lucide-react";
-import { CabnTopDownPreview } from "@/components/CabnTopDownPreview";
+import { Cabn3DPreview } from "@/components/Cabn3DPreview";
 import { getCabnModel } from "@/lib/cabnModels";
 import { getCabnScene } from "@/lib/cabnScenes";
 import {
@@ -64,12 +63,6 @@ const customizationSections: CustomizationSection[] = [
     title: "Built-ins Position",
     description: "Choose the wall that should carry storage, shelving, or millwork.",
     icon: PanelsTopLeft,
-  },
-  {
-    key: "majorViewWall",
-    title: "Major View Wall",
-    description: "Choose the wall that should open toward the strongest view.",
-    icon: Eye,
   },
 ];
 
@@ -275,14 +268,16 @@ export function EditCabnApp() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleContinue}
-            className="mt-3 inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(32,59,44,0.18)] transition hover:-translate-y-0.5 hover:bg-[#2e523e]"
-          >
-            Review CABN Plan
-            <ArrowRight className="h-5 w-5" aria-hidden="true" />
-          </button>
+          <div className="sticky bottom-0 -mx-5 mt-3 border-t border-[#edf0eb] bg-white/96 px-5 pb-1 pt-3 shadow-[0_-18px_38px_rgba(22,24,23,0.06)]">
+            <button
+              type="button"
+              onClick={handleContinue}
+              className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-5 text-base font-semibold text-white shadow-[0_18px_45px_rgba(32,59,44,0.18)] transition hover:-translate-y-0.5 hover:bg-[#2e523e]"
+            >
+              Review CABN Plan
+              <ArrowRight className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         </aside>
 
         <section className="order-1 flex min-h-[58vh] items-center justify-center p-5 sm:p-8 lg:order-2 lg:min-h-screen">
@@ -290,7 +285,7 @@ export function EditCabnApp() {
             <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7a827c]">
-                  Birds-eye room preview
+                  Bird&apos;s-Eye 3D Preview
                 </div>
                 <h2 className="mt-2 text-2xl font-semibold">
                   {selectedModel.name} on {plan.lot.title}
@@ -300,7 +295,7 @@ export function EditCabnApp() {
                 {Math.round(placement.rotationDeg)}° rotation
               </div>
             </div>
-            <CabnTopDownPreview
+            <Cabn3DPreview
               plan={plan}
               model={selectedModel}
               placement={placement}

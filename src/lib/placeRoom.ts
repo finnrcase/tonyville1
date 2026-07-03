@@ -19,7 +19,7 @@ export type CABNCustomization = {
   windowWall: CABNWall;
   doorWall: CABNWall;
   deskWall: CABNWall;
-  builtInsWall?: CABNWall;
+  builtInsWall: CABNWall;
   majorViewWall?: CABNWall;
 };
 
@@ -27,6 +27,7 @@ export const DEFAULT_CABN_CUSTOMIZATION: CABNCustomization = {
   windowWall: "north",
   doorWall: "east",
   deskWall: "south",
+  builtInsWall: "north",
 };
 
 export type StructureFootprint = {
@@ -196,7 +197,7 @@ export function normalizeCABNCustomization(
       : DEFAULT_CABN_CUSTOMIZATION.deskWall,
     builtInsWall: isCABNWall(customization?.builtInsWall)
       ? customization.builtInsWall
-      : undefined,
+      : DEFAULT_CABN_CUSTOMIZATION.builtInsWall,
     majorViewWall: isCABNWall(customization?.majorViewWall)
       ? customization.majorViewWall
       : undefined,
