@@ -43,7 +43,13 @@ function statusLabel(row: DataSourceOverviewRow): {
   if (row.dataset.availability === "not-configured") {
     return { label: "Not configured", tone: "gray" };
   }
-  if (!row.latestRun) return { label: "Pending", tone: "amber" };
+  if (!row.latestRun) {
+    // Enrichment datasets (e.g. zoning) write onto parcel records during
+    // base imports rather than running their own jobs.
+    return row.recordCount
+      ? { label: "Imported", tone: "green" }
+      : { label: "Pending", tone: "amber" };
+  }
   if (row.latestRun.status === "updating") return { label: "Updating", tone: "blue" };
   if (row.latestRun.status === "failed") return { label: "Failed", tone: "red" };
   if (row.latestRun.status === "imported") return { label: "Imported", tone: "green" };

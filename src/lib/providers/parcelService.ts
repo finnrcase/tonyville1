@@ -191,9 +191,12 @@ export async function searchParcelCandidates(input: {
   const fallbackReason = laCounty.diagnostic.attempted
     ? `Regrid did not provide parcels (${regridFallbackReason}). LA County GIS did not provide parcels (${laCounty.message}).`
     : `Regrid did not provide parcels (${regridFallbackReason}). LA County GIS was skipped (${laFallbackReason}).`;
+  const emptySource: ParcelSearchSource = laCounty.diagnostic.attempted
+    ? "la_county_gis"
+    : "regrid";
   const diagnostics = makeBaseDiagnostics({
     center: input.center,
-    source: "mock",
+    source: emptySource,
     fallbackReason,
   });
   diagnostics.steps.regridRequest = {
@@ -259,7 +262,7 @@ export async function searchParcelCandidates(input: {
 
   return {
     parcels: [],
-    source: laCounty.diagnostic.attempted ? "la_county_gis" : "regrid",
+    source: emptySource,
     providerStatus: emptyStatus,
     providerMessage: laCounty.diagnostic.attempted
       ? `Data unavailable for this search. Regrid ${regrid.status}: ${regrid.message} LA County GIS ${laCounty.status}: ${laCounty.message}`

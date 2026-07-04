@@ -32,17 +32,26 @@ Tonyville is a single-page, map-first land search for tiny-home buyers. The main
 - **API route**: [src/app/api/parcels/route.ts](src/app/api/parcels/route.ts) parses the same params to run the search.
 - **Geocoding**: [src/app/api/geocode/route.ts](src/app/api/geocode/route.ts) resolves typed locations through Mapbox on the server, then updates the URL with lat/lng/area.
 
-[src/components/TonyvilleApp.tsx](src/components/TonyvilleApp.tsx) (`"use client"`) holds all live state, debounces filter/map changes (350ms), pushes them into the URL via `history.replaceState`, and re-fetches `/api/parcels` on every debounced change (with `AbortController` to cancel in-flight requests). It renders mock results immediately on mount, then swaps in the fetched results.
+[src/components/TonyvilleApp.tsx](src/components/TonyvilleApp.tsx) (`"use client"`) holds all live state, debounces filter/map changes (350ms), pushes them into the URL via `history.replaceState`, and re-fetches `/api/parcels` on every debounced change (with `AbortController` to cancel in-flight requests). It starts with an empty result set and fills in with the first live fetch — **there is no mock parcel data anywhere at runtime**.
 
-### Parcel data pipeline
+### Parcel data ingestion layer (data platform)
+
+`src/lib/ingestion/` is the authoritative-data platform. Source adapters (fetch + parse + normalize) emit one shared `NormalizedParcel` model with **per-field provenance**; the pipeline persists them to Supabase (`parcels`, `ingestion_datasets`, `ingestion_runs` — see `supabase/migrations/0004`). Consumers only read normalized records, never raw datasets.
+
+- Adapters live in `src/lib/ingestion/adapters/` (LA County Parcels is the live base source; LA City Zoning enriches City-of-LA parcels). Adding a source = one new adapter + a line in [src/lib/ingestion/registry.ts](src/lib/ingestion/registry.ts); nothing else changes.
+- Honesty rules: missing source values are stored as `null` and rendered as "Not available from this source." / "Data unavailable" — never estimated. Sources without a public dataset (UCLA cityLAB) are registered as `unavailable`, not faked.
+- DB writes go through token-gated `SECURITY DEFINER` RPCs (`INGESTION_ADMIN_TOKEN` in env must match `private.ingestion_secrets`); reads are anon RLS selects.
+- Ops dashboard: `/admin/data-sources` (datasets, runs, counts, errors + trigger imports). Inspector API: `/api/parcels/official?lat&lng` (store-first, live official fallback, persists on lookup).
+
+### Parcel search pipeline (customer UI)
 
 ```
-Regrid parcel search → scoreAndFilterParcels() → sortParcels() [client]
-Selected parcel → parcelService → ATTOM enrichment
+Regrid parcel search → LA County GIS fallback → scoreAndFilterParcels() → sortParcels() [client]
+Selected parcel → parcelService → ATTOM enrichment + /api/parcels/official (inspector)
 ```
 
 - [src/lib/regrid.ts](src/lib/regrid.ts) — adapter for the Regrid `parcels/point` API. Maps loosely-typed Regrid fields to the `Parcel` shape and infers permit/zoning. Returns a `status` (`missing-key`/`empty`/`error`/`ready`).
-- **Fallback chain** (in the API route): try Regrid → if it yields scored matches use them (`source: "regrid"`); otherwise fall back to [src/lib/mockParcels.ts](src/lib/mockParcels.ts) (`source: "mock"` when Regrid was unavailable, `source: "fallback"` when Regrid returned data but nothing survived filtering). The `providerStatus`/`providerMessage` surface this to the UI.
+- **Fallback chain** (in `src/lib/providers/parcelService.ts`): Regrid → LA County GIS → **honestly empty** (`parcels: []` with `providerStatus`/`providerMessage` explaining why). The mock fallback was removed; fabricated parcels are never served.
 - [src/lib/parcelService.ts](src/lib/parcelService.ts) and [src/lib/attom.ts](src/lib/attom.ts) — server-side enrichment path for selected parcels. ATTOM failures are cached/session-safe on the client and shown as unavailable data, not fatal UI errors.
 - [src/lib/parcelSearch.ts](src/lib/parcelSearch.ts) — `scoreAndFilterParcels` computes distance, fit score, and tiny-home compatibility per parcel, then filters by radius/price/utilities/road/permit. `sortParcels` is applied separately on the client so re-sorting doesn't refetch.
 
