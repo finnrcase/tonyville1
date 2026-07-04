@@ -1,4 +1,3 @@
-import { mockParcels } from "@/lib/mockParcels";
 import { distanceInMiles, tonyvilleFitScore } from "@/lib/tonyvilleFitScore";
 import { getTinyHomeCompatibility } from "@/lib/tinyHomes";
 import {
@@ -161,11 +160,3 @@ export function sortParcels(parcels: ScoredParcel[], sort: SortOption) {
   });
 }
 
-export function getMockParcelSearch(filters: SearchFilters) {
-  const center = resolveSearchCenter(filters.location);
-
-  return {
-    center,
-    parcels: scoreAndFilterParcels(mockParcels, filters, center),
-  };
-}

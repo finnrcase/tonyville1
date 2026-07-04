@@ -1,5 +1,4 @@
 import "server-only";
-import { mockParcels } from "@/lib/mockParcels";
 import { laCountyParcelProvider } from "@/lib/providers/laCountyParcelProvider";
 import { regridProvider } from "@/lib/providers/regridProvider";
 import type {
@@ -242,25 +241,29 @@ export async function searchParcelCandidates(input: {
     fallbackTriggered: true,
     fallbackReason: laCounty.message,
   };
+  // Fabricated parcel data is never served. When no official or licensed
+  // source can supply parcels, the search is honestly empty.
   diagnostics.steps.mockFallback = {
-    ran: true,
-    succeeded: true,
-    status: "ready",
-    parsedParcelCount: mockParcels.length,
-    fallbackTriggered: false,
+    ran: false,
+    succeeded: false,
+    status: "disabled-no-fabricated-data",
     fallbackReason,
   };
 
+  const emptyStatus: ParcelProviderStatus =
+    laCounty.status === "error" || regrid.status === "error"
+      ? "error"
+      : regrid.status === "missing-key" && !laCounty.diagnostic.attempted
+        ? "missing-key"
+        : "empty";
+
   return {
-    parcels: mockParcels,
-    source: regrid.parcels.length > 0 ? "fallback" : "mock",
-    providerStatus: regrid.parcels.length > 0 ? "fallback" : regrid.status,
-    providerMessage:
-      regrid.parcels.length > 0
-        ? `Regrid ready returned ${regrid.parcels.length} parcel(s), but none matched the active filters. Mock Data Fallback active.`
-        : laCounty.diagnostic.attempted
-          ? `Regrid ${regrid.status}: ${regrid.message} LA County GIS fallback ${laCounty.status}: ${laCounty.message} Mock Data Fallback active.`
-          : `Regrid ${regrid.status}: ${regrid.message}`,
+    parcels: [],
+    source: laCounty.diagnostic.attempted ? "la_county_gis" : "regrid",
+    providerStatus: emptyStatus,
+    providerMessage: laCounty.diagnostic.attempted
+      ? `Data unavailable for this search. Regrid ${regrid.status}: ${regrid.message} LA County GIS ${laCounty.status}: ${laCounty.message}`
+      : `Data unavailable for this search. Regrid ${regrid.status}: ${regrid.message} ${laFallbackReason ?? ""}`.trim(),
     diagnostics,
   };
 }

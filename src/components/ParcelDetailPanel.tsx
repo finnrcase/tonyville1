@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatAcres, formatCurrency, formatMiles } from "@/lib/format";
 import { getCabnModel } from "@/lib/cabnModels";
+import { OfficialParcelInfo } from "@/components/OfficialParcelInfo";
 import { ParcelIntelligence } from "@/components/ParcelIntelligence";
 import type { EnrichmentStatus } from "@/lib/enrichmentClient";
 import {
@@ -651,7 +652,9 @@ export function ParcelDetailPanel({
           <div className="rounded-2xl bg-[#f7f6f2] px-3 py-3">
             <div className="text-xs font-semibold text-[#6f7b73]">Price</div>
             <div className="mt-1 font-mono text-sm font-semibold text-[#111817]">
-              {formatCurrency.format(parcel.price)}
+              {parcel.priceSource === "unknown" || parcel.price <= 0
+                ? "Data unavailable"
+                : formatCurrency.format(parcel.price)}
             </div>
           </div>
           <div className="rounded-2xl bg-[#f7f6f2] px-3 py-3">
@@ -668,6 +671,14 @@ export function ParcelDetailPanel({
               {formatMiles(parcel.distanceMiles)}
             </div>
           </div>
+        </div>
+
+        <div className="mt-5">
+          <OfficialParcelInfo
+            lat={parcel.lat}
+            lng={parcel.lng}
+            lookupKey={parcel.id}
+          />
         </div>
 
         <div className="mt-5 space-y-4">

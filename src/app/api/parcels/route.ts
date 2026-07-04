@@ -54,39 +54,25 @@ export async function GET(request: NextRequest) {
     { userPreferences: filters },
   );
 
-  if (providerResult.source !== "mock" || parcels.length > 0) {
-    const diagnostics =
-      parcels.length > 0
-        ? providerResult.diagnostics
-        : {
-            ...providerResult.diagnostics,
-            fallbackReason: `${providerResult.providerMessage} Active filters removed all parsed parcels; mock fallback was not used because ${providerResult.diagnostics.currentSource} did return parcel candidates.`,
-          };
-    return NextResponse.json({
-      parcels,
-      center,
-      source: providerResult.source,
-      providerStatus:
-        parcels.length > 0 ? providerResult.providerStatus : "empty",
-      providerMessage:
-        parcels.length > 0
-          ? providerResult.providerMessage
-          : `${providerResult.providerMessage} No parcels matched the active filters.`,
-      diagnostics,
-    } satisfies ParcelSearchResponse);
-  }
-
-  const fallbackCenter =
-    center.source === "location"
-      ? resolveSearchCenter(filters.location)
-      : center;
+  // Providers never fabricate parcels; an empty result is reported honestly.
+  const filteredToEmpty =
+    parcels.length === 0 && providerResult.parcels.length > 0;
+  const diagnostics = filteredToEmpty
+    ? {
+        ...providerResult.diagnostics,
+        fallbackReason: `${providerResult.providerMessage} Active filters removed all parsed parcels.`,
+      }
+    : providerResult.diagnostics;
 
   return NextResponse.json({
     parcels,
-    center: fallbackCenter,
+    center,
     source: providerResult.source,
-    providerStatus: providerResult.providerStatus,
-    providerMessage: providerResult.providerMessage,
-    diagnostics: providerResult.diagnostics,
+    providerStatus:
+      parcels.length > 0 ? providerResult.providerStatus : filteredToEmpty ? "empty" : providerResult.providerStatus,
+    providerMessage: filteredToEmpty
+      ? `${providerResult.providerMessage} No parcels matched the active filters.`
+      : providerResult.providerMessage,
+    diagnostics,
   } satisfies ParcelSearchResponse);
 }

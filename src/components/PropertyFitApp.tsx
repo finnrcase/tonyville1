@@ -600,9 +600,11 @@ export function PropertyFitApp({
         const propertyResponse = await fetch(
           `/api/property-fit?lat=${geocode.center.lat}&lng=${geocode.center.lng}&address=${encodeURIComponent(geocode.center.label)}`,
         );
-        const property = (await propertyResponse.json()) as PropertyFitResponse;
+        const property = (await propertyResponse.json()) as PropertyFitResponse & {
+          error?: string;
+        };
         if (!propertyResponse.ok) {
-          setMessage("Property parcel lookup failed.");
+          setMessage(property.error ?? "Property parcel lookup failed.");
           return;
         }
 

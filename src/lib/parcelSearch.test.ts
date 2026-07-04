@@ -1,16 +1,40 @@
 import { describe, expect, it } from "vitest";
-import { mockParcels } from "@/lib/mockParcels";
 import { defaultSearchFilters, scoreAndFilterParcels } from "@/lib/parcelSearch";
 import type { Parcel } from "@/types/parcel";
 
+// Test-only fixture: a parcel that passes road-access/utility/permit filters,
+// pinned to the search center so only the price filter differentiates.
+const baseParcel: Parcel = {
+  id: "fixture-1",
+  provider: "regrid",
+  title: "Fixture parcel",
+  address: "1 Test Rd",
+  city: "Testville",
+  county: "Test",
+  state: "TX",
+  price: 100_000,
+  acreage: 1.2,
+  lat: 30.2672,
+  lng: -97.7431,
+  priceSource: "listing",
+  utilities: { water: true, electricity: true, sewerSeptic: true },
+  roadAccess: { available: true, type: "paved", label: "Paved road" },
+  zoningRisk: "low",
+  permitFriendliness: "friendly",
+  zoningSummary: "Test zoning summary",
+  terrain: "flat terrain",
+  parcelUse: "Vacant land",
+  nearbyAmenities: [],
+  estimatedSiteWork: [],
+  daysOnMarket: 10,
+  highlights: [],
+  constraints: [],
+};
+
 describe("scoreAndFilterParcels price filter", () => {
-  const center = { label: "Test", lat: mockParcels[0].lat, lng: mockParcels[0].lng };
-  // Base on a real mock parcel (which passes road-access/utility/permit filters) and
-  // keep it at the search center so only the price filter differentiates.
+  const center = { label: "Test", lat: baseParcel.lat, lng: baseParcel.lng };
   const at = (over: Partial<Parcel>): Parcel => ({
-    ...mockParcels[0],
-    lat: mockParcels[0].lat,
-    lng: mockParcels[0].lng,
+    ...baseParcel,
     ...over,
   });
   const filters = { ...defaultSearchFilters, maxPrice: 175_000, radiusMiles: 10 };

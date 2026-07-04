@@ -335,13 +335,18 @@ function mapFeatureToParcel(
   const ain = firstString(properties, ["AIN"]);
   const rawAddress = firstString(properties, ["SitusFullAddress", "SitusAddress"]);
   const city = cleanCity(firstString(properties, ["SitusCity", "TaxRateCity"]));
+  // No fabricated values: parcels without a derivable official area are
+  // skipped, and missing assessor land value means "price unknown" (0),
+  // never an estimate.
   const areaSqft =
     firstNumber(properties, ["Shape.STArea()", "Shape__Area", "SHAPE_STArea"]) ??
-    areaSqftFromGeometry(geometry) ??
-    7500;
-  const acreage = Math.max(areaSqft / SQFT_PER_ACRE, 0.02);
+    areaSqftFromGeometry(geometry);
+  if (areaSqft === undefined || areaSqft <= 0) {
+    return undefined;
+  }
+  const acreage = areaSqft / SQFT_PER_ACRE;
   const landValue = firstNumber(properties, ["Roll_LandValue"]);
-  const price = landValue ?? Math.round(Math.max(25000, acreage * 85000));
+  const price = landValue ?? 0;
   const useDescription =
     firstString(properties, ["UseDescription", "UseType"]) ?? "Parcel";
   const incorporatedCity = firstString(properties, ["TaxRateCity"]);
@@ -366,7 +371,7 @@ function mapFeatureToParcel(
     lat: calculatedCenter.lat,
     lng: calculatedCenter.lng,
     geometry,
-    priceSource: landValue ? "assessed" : "estimated",
+    priceSource: landValue ? "assessed" : "unknown",
     utilities: {
       water: false,
       electricity: false,

@@ -14,10 +14,7 @@ import { MapView } from "@/components/MapView";
 import { ParcelDetailPanel } from "@/components/ParcelDetailPanel";
 import { ParcelList } from "@/components/ParcelList";
 import { SearchFilters } from "@/components/SearchFilters";
-import {
-  getMockParcelSearch,
-  sortParcels,
-} from "@/lib/parcelSearch";
+import { resolveSearchCenter, sortParcels } from "@/lib/parcelSearch";
 import { useParcelEnrichment } from "@/lib/enrichmentClient";
 import { createSearchParams } from "@/lib/searchState";
 import { AuthMenu } from "@/components/AuthMenu";
@@ -66,8 +63,8 @@ function useDebouncedValue<T>(value: T, delayMs: number) {
 
 function initialDiagnostics(): ParcelSourceDiagnostics {
   return {
-    currentSource: "Mock",
-    fallbackReason: "Initial mock data is shown while the live parcel pipeline starts.",
+    currentSource: "Regrid",
+    fallbackReason: "The first live parcel search has not completed yet.",
     steps: {
       locationSearch: { ran: false, succeeded: false, status: "not-run" },
       mapboxGeocode: { ran: false, succeeded: false, status: "not-run" },
@@ -77,26 +74,23 @@ function initialDiagnostics(): ParcelSourceDiagnostics {
       laCountyRequest: { ran: false, succeeded: false, status: "not-run" },
       laCountyParser: { ran: false, succeeded: false, status: "not-run" },
       mockFallback: {
-        ran: true,
-        succeeded: true,
-        status: "initial",
-        fallbackReason:
-          "Initial mock data is shown while live provider search initializes.",
+        ran: false,
+        succeeded: false,
+        status: "disabled-no-fabricated-data",
       },
     },
   };
 }
 
 function initialSearchResponse(filters: SearchFiltersType): ParcelSearchResponse {
-  const mock = getMockParcelSearch(filters);
-
+  // No fabricated parcels: the app starts empty and fills in with real
+  // provider results from the first /api/parcels fetch.
   return {
-    parcels: mock.parcels,
-    center: mock.center,
-    source: "mock",
-    providerStatus: "missing-key",
-    providerMessage:
-      "Mock Data Fallback shown while live provider search initializes.",
+    parcels: [],
+    center: resolveSearchCenter(filters.location),
+    source: "regrid",
+    providerStatus: "empty",
+    providerMessage: "Searching official parcel records…",
     diagnostics: initialDiagnostics(),
   };
 }

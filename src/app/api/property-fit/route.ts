@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { mockParcels } from "@/lib/mockParcels";
 import { lookupRegridParcelAtPoint } from "@/lib/regrid";
 import {
   laCountyParcelProvider,
@@ -27,48 +26,6 @@ type PropertyFitResponse = {
 function readNumber(value: string | null) {
   const parsed = value === null ? Number.NaN : Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function mockParcelAt(center: SearchCenter, address: string): Parcel {
-  const base = mockParcels[0];
-  const delta = 0.00055;
-
-  return {
-    ...base,
-    id: "mock-owned-property",
-    provider: "mock",
-    providerParcelId: undefined,
-    apn: undefined,
-    ain: undefined,
-    title: "Mock property boundary",
-    address,
-    city: center.label.split(",")[0] || "Property",
-    county: "Unknown",
-    state: "Unknown",
-    price: 0,
-    acreage: 0.28,
-    lat: center.lat,
-    lng: center.lng,
-    geometry: {
-      type: "Polygon",
-      coordinates: [
-        [
-          [center.lng - delta, center.lat - delta],
-          [center.lng + delta, center.lat - delta],
-          [center.lng + delta, center.lat + delta],
-          [center.lng - delta, center.lat + delta],
-          [center.lng - delta, center.lat - delta],
-        ],
-      ],
-    },
-    priceSource: "unknown",
-    highlights: ["Mock parcel boundary for placement tool testing"],
-    constraints: [
-      "Mock Data Fallback: real parcel boundary was not available.",
-      "Manual parcel and setback review required.",
-    ],
-    raw: null,
-  };
 }
 
 export async function GET(request: NextRequest) {
@@ -130,36 +87,34 @@ export async function GET(request: NextRequest) {
       } satisfies PropertyFitResponse);
     }
 
-    return NextResponse.json({
-      parcel: mockParcelAt(center, address),
-      source: "mock",
-      sourceMessage:
-        "Mock parcel fallback active because Regrid and LA County GIS returned no property boundary.",
-      existingStructures: [],
-      existingStructuresAvailable: false,
+    return NextResponse.json(
+      {
+        error:
+          "Data unavailable: no official parcel boundary was found at this location (Regrid and LA County GIS returned nothing). No boundary is estimated.",
+        diagnostics: {
+          regridStatus: regrid.status,
+          regridFeatureCount,
+          laCountyStatus: laCounty.status,
+          laCountyFeatureCount,
+          fallbackReason: laCounty.message,
+        },
+      },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json(
+    {
+      error:
+        "Data unavailable: no official parcel source covers this location yet (Regrid returned no boundary; LA County GIS covers Los Angeles County only). No boundary is estimated.",
       diagnostics: {
         regridStatus: regrid.status,
         regridFeatureCount,
-        laCountyStatus: laCounty.status,
-        laCountyFeatureCount,
-        fallbackReason: laCounty.message,
+        laCountyStatus: "skipped-outside-la-county",
+        laCountyFeatureCount: 0,
+        fallbackReason: "Outside LA County GIS parcel coverage.",
       },
-    } satisfies PropertyFitResponse);
-  }
-
-  return NextResponse.json({
-    parcel: mockParcelAt(center, address),
-    source: "mock",
-    sourceMessage:
-      "Mock parcel fallback active because Regrid returned no boundary and LA County GIS does not cover this location.",
-    existingStructures: [],
-    existingStructuresAvailable: false,
-    diagnostics: {
-      regridStatus: regrid.status,
-      regridFeatureCount,
-      laCountyStatus: "skipped-outside-la-county",
-      laCountyFeatureCount: 0,
-      fallbackReason: "Outside LA County GIS parcel coverage.",
     },
-  } satisfies PropertyFitResponse);
+    { status: 404 },
+  );
 }
