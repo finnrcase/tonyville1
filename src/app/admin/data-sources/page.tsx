@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/data/profiles";
 import { isSupabaseConfigured } from "@/lib/supabase/readiness";
-import { getDataSourcesOverview } from "@/lib/ingestion/store";
+import {
+  getDataSourcesOverview,
+  getRecentSearchEvents,
+} from "@/lib/ingestion/store";
 import type {
   DataSourceOverviewRow,
   IngestionRunSummary,
@@ -98,7 +101,10 @@ export default async function DataSourcesPage() {
     redirect("/auth/sign-in?next=/admin/data-sources");
   }
 
-  const overview = await getDataSourcesOverview();
+  const [overview, searchEvents] = await Promise.all([
+    getDataSourcesOverview(),
+    getRecentSearchEvents(30),
+  ]);
 
   return (
     <main className="mx-auto max-w-7xl p-6 text-[#111817]">
@@ -192,6 +198,89 @@ export default async function DataSourcesPage() {
             ))}
           </tbody>
         </table>
+      </div>
+
+      <h2 className="mt-8 text-lg font-semibold">Search ingestion history</h2>
+      <p className="mt-1 text-sm text-[#66716a]">
+        Customer searches against the parcel cache — hits serve stored
+        official records; misses trigger on-demand ingestion.
+      </p>
+      <div className="mt-3 overflow-x-auto rounded-2xl border border-[#edf0ec]">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-[#f7f6f2] text-xs uppercase text-[#66716a]">
+            <tr>
+              <th className="px-3 py-2">When</th>
+              <th className="px-3 py-2">Searched location</th>
+              <th className="px-3 py-2">Radius</th>
+              <th className="px-3 py-2">Source</th>
+              <th className="px-3 py-2">Cache</th>
+              <th className="px-3 py-2">Found</th>
+              <th className="px-3 py-2">Imported</th>
+              <th className="px-3 py-2">Duration</th>
+              <th className="px-3 py-2">Errors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {searchEvents.map((event) => (
+              <tr key={event.id} className="border-t border-[#edf0ec]">
+                <td className="whitespace-nowrap px-3 py-2">
+                  {formatTimestamp(event.createdAt)}
+                </td>
+                <td className="px-3 py-2">
+                  <div className="font-medium">
+                    {event.searchedLabel ?? "—"}
+                  </div>
+                  <div className="text-xs text-[#9aa39d]">
+                    {event.lat.toFixed(5)}, {event.lng.toFixed(5)}
+                  </div>
+                </td>
+                <td className="px-3 py-2 tabular-nums">
+                  {event.radiusMiles} mi
+                </td>
+                <td className="px-3 py-2">{event.sourceDatasetId ?? "—"}</td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                      event.cacheHit
+                        ? TONE_CLASSES.green
+                        : TONE_CLASSES.blue
+                    }`}
+                  >
+                    {event.cacheHit ? "Hit" : "Miss → import"}
+                  </span>
+                </td>
+                <td className="px-3 py-2 tabular-nums">{event.parcelsFound}</td>
+                <td className="px-3 py-2 tabular-nums">
+                  {event.parcelsImported}
+                </td>
+                <td className="px-3 py-2 tabular-nums">
+                  {formatDuration(event.durationMs)}
+                </td>
+                <td className="px-3 py-2">
+                  {event.errors.length ? (
+                    <details>
+                      <summary className="cursor-pointer font-semibold text-[#a03030]">
+                        {event.errors.length}
+                      </summary>
+                      <ul className="mt-1 max-w-md list-disc space-y-1 pl-4 text-xs text-[#66716a]">
+                        {event.errors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </details>
+                  ) : (
+                    <span className="text-[#9aa39d]">None</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {searchEvents.length === 0 ? (
+          <p className="p-4 text-sm text-[#66716a]">
+            No customer search lookups recorded yet.
+          </p>
+        ) : null}
       </div>
 
       <h2 className="mt-8 text-lg font-semibold">Recent import runs</h2>

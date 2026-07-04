@@ -1,6 +1,10 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { pointInParcelGeometry } from "@/lib/ingestion/geometry";
+import {
+  bboxAround,
+  haversineMiles,
+  pointInParcelGeometry,
+} from "@/lib/ingestion/geometry";
 import { ALL_DATASETS } from "@/lib/ingestion/datasets";
 import type {
   DataSourceOverviewRow,
@@ -11,6 +15,7 @@ import type {
   NormalizedParcel,
   ParcelGeometry,
   ParcelProvenance,
+  SearchEventSummary,
   StoredParcel,
 } from "@/lib/ingestion/model";
 
@@ -76,10 +81,11 @@ type ParcelRow = {
   source_last_updated: string | null;
   provenance: ParcelProvenance | null;
   imported_at: string;
+  last_refreshed_at: string;
 };
 
 const PARCEL_COLUMNS =
-  "id, source_dataset_id, source_parcel_id, apn, ain, address, city, state, county, jurisdiction, centroid_lat, centroid_lng, geometry, lot_area_sqft, zoning, land_use, owner_type, improved_status, assessor_use_code, source_agency, source_url, dataset_version, source_last_updated, provenance, imported_at";
+  "id, source_dataset_id, source_parcel_id, apn, ain, address, city, state, county, jurisdiction, centroid_lat, centroid_lng, geometry, lot_area_sqft, zoning, land_use, owner_type, improved_status, assessor_use_code, source_agency, source_url, dataset_version, source_last_updated, provenance, imported_at, last_refreshed_at";
 
 function rowToStoredParcel(row: ParcelRow): StoredParcel {
   return {
@@ -109,6 +115,7 @@ function rowToStoredParcel(row: ParcelRow): StoredParcel {
     provenance: row.provenance ?? {},
     raw: null,
     importedAt: row.imported_at,
+    lastRefreshedAt: row.last_refreshed_at,
   };
 }
 
@@ -218,6 +225,130 @@ export async function touchDataset(input: {
     p_version: input.version,
     p_source_last_updated: input.sourceLastUpdated,
   });
+}
+
+/**
+ * Fresh cached parcels within a radius of the search center, nearest first.
+ * Centroid bbox prefilter in SQL, exact haversine radius filter in JS.
+ */
+export async function searchFreshParcelsNear(input: {
+  center: LatLng;
+  radiusMiles: number;
+  freshCutoffIso: string;
+  limit: number;
+}): Promise<StoredParcel[]> {
+  const client = getClient();
+  if (!client) return [];
+
+  const bbox = bboxAround(input.center, input.radiusMiles);
+  const { data, error } = await client
+    .from("parcels")
+    .select(PARCEL_COLUMNS)
+    .gte("centroid_lat", bbox.south)
+    .lte("centroid_lat", bbox.north)
+    .gte("centroid_lng", bbox.west)
+    .lte("centroid_lng", bbox.east)
+    .gte("last_refreshed_at", input.freshCutoffIso)
+    .limit(Math.max(input.limit * 3, 300));
+
+  if (error || !data) return [];
+  const rows = data as unknown as ParcelRow[];
+
+  return rows
+    .filter(
+      (row) => row.centroid_lat !== null && row.centroid_lng !== null,
+    )
+    .map((row) => ({
+      row,
+      distance: haversineMiles(input.center, {
+        lat: row.centroid_lat as number,
+        lng: row.centroid_lng as number,
+      }),
+    }))
+    .filter(({ distance }) => distance <= input.radiusMiles)
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, input.limit)
+    .map(({ row }) => rowToStoredParcel(row));
+}
+
+export async function recordSearchEvent(input: {
+  searchedLabel: string | null;
+  lat: number;
+  lng: number;
+  radiusMiles: number;
+  sourceDatasetId: string | null;
+  cacheHit: boolean;
+  parcelsFound: number;
+  parcelsImported: number;
+  durationMs: number;
+  runId: string | null;
+  errors: string[];
+  requestedBy: string;
+}): Promise<void> {
+  const client = getClient();
+  if (!client || !isIngestionWriteConfigured()) return;
+  await client.rpc("ingestion_record_search_event", {
+    admin_token: adminToken(),
+    p_searched_label: input.searchedLabel,
+    p_lat: input.lat,
+    p_lng: input.lng,
+    p_radius_miles: input.radiusMiles,
+    p_source_dataset_id: input.sourceDatasetId,
+    p_cache_hit: input.cacheHit,
+    p_parcels_found: input.parcelsFound,
+    p_parcels_imported: input.parcelsImported,
+    p_duration_ms: input.durationMs,
+    p_run_id: input.runId,
+    p_errors: input.errors,
+    p_requested_by: input.requestedBy,
+  });
+}
+
+type SearchEventRow = {
+  id: string;
+  searched_label: string | null;
+  lat: number;
+  lng: number;
+  radius_miles: number;
+  source_dataset_id: string | null;
+  cache_hit: boolean;
+  parcels_found: number;
+  parcels_imported: number;
+  duration_ms: number | null;
+  errors: unknown;
+  requested_by: string | null;
+  created_at: string;
+};
+
+export async function getRecentSearchEvents(
+  limit = 30,
+): Promise<SearchEventSummary[]> {
+  const client = getClient();
+  if (!client) return [];
+  const { data, error } = await client
+    .from("search_events")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+
+  return (data as SearchEventRow[]).map((row) => ({
+    id: row.id,
+    searchedLabel: row.searched_label,
+    lat: row.lat,
+    lng: row.lng,
+    radiusMiles: row.radius_miles,
+    sourceDatasetId: row.source_dataset_id,
+    cacheHit: row.cache_hit,
+    parcelsFound: row.parcels_found,
+    parcelsImported: row.parcels_imported,
+    durationMs: row.duration_ms,
+    errors: Array.isArray(row.errors)
+      ? row.errors.filter((entry): entry is string => typeof entry === "string")
+      : [],
+    requestedBy: row.requested_by,
+    createdAt: row.created_at,
+  }));
 }
 
 export async function findStoredParcelAtPoint(

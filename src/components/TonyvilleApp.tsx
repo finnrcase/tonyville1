@@ -246,6 +246,11 @@ export function TonyvilleApp({
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Two-phase loading copy: quick responses are cache reads; slow ones are
+  // usually a live official import happening on demand.
+  const [loadingLabel, setLoadingLabel] = useState(
+    "Checking official parcel records…",
+  );
   const [locationSearchStatus, setLocationSearchStatus] =
     useState<LocationSearchStatus>("idle");
   const [locationSearchMessage, setLocationSearchMessage] = useState("");
@@ -277,7 +282,11 @@ export function TonyvilleApp({
 
     const loadingTimeout = window.setTimeout(() => {
       setLoading(true);
+      setLoadingLabel("Checking official parcel records…");
     }, 0);
+    const importingLabelTimeout = window.setTimeout(() => {
+      setLoadingLabel("Importing official parcel data…");
+    }, 2500);
 
     fetch(`/api/parcels?${params.toString()}`, {
       signal: controller.signal,
@@ -303,17 +312,19 @@ export function TonyvilleApp({
           ...fallback,
           providerStatus: "error",
           providerMessage:
-            "Parcel search failed; Mock Data Fallback active.",
+            "Parcel search failed. No parcel data is shown for this search — try again.",
         });
       })
       .finally(() => {
         if (!controller.signal.aborted) {
+          window.clearTimeout(importingLabelTimeout);
           setLoading(false);
         }
       });
 
     return () => {
       window.clearTimeout(loadingTimeout);
+      window.clearTimeout(importingLabelTimeout);
       controller.abort();
     };
   }, [debouncedFilters, debouncedMapSearchCenter]);
@@ -636,6 +647,7 @@ export function TonyvilleApp({
               selectedParcelId={selectedId}
               sort={sort}
               loading={loading}
+              loadingLabel={loadingLabel}
               providerStatus={searchResult.providerStatus}
               providerMessage={searchResult.providerMessage}
               source={searchResult.source}
@@ -673,6 +685,7 @@ export function TonyvilleApp({
             selectedParcelId={selectedId}
             sort={sort}
             loading={loading}
+            loadingLabel={loadingLabel}
               providerStatus={searchResult.providerStatus}
               providerMessage={searchResult.providerMessage}
               source={searchResult.source}

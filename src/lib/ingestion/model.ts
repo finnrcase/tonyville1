@@ -80,6 +80,24 @@ export type NormalizedParcel = {
 export type StoredParcel = NormalizedParcel & {
   id: string;
   importedAt: string;
+  lastRefreshedAt: string;
+};
+
+/** One customer search lookup against the cache (hit or miss), for auditing. */
+export type SearchEventSummary = {
+  id: string;
+  searchedLabel: string | null;
+  lat: number;
+  lng: number;
+  radiusMiles: number;
+  sourceDatasetId: string | null;
+  cacheHit: boolean;
+  parcelsFound: number;
+  parcelsImported: number;
+  durationMs: number | null;
+  errors: string[];
+  requestedBy: string | null;
+  createdAt: string;
 };
 
 export type LatLng = { lat: number; lng: number };

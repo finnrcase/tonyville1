@@ -24,6 +24,7 @@ type ParcelListProps = {
   selectedParcelId?: string;
   sort: SortOption;
   loading: boolean;
+  loadingLabel?: string;
   providerStatus: ParcelProviderStatus;
   providerMessage: string;
   source: ParcelSearchSource;
@@ -42,8 +43,8 @@ const sortOptions: Array<{ value: SortOption; label: string }> = [
 
 function sourceBadge(source: ParcelSearchSource) {
   if (source === "regrid") return "Source: Regrid";
-  if (source === "la_county_gis") return "Source: LA County GIS";
-  return "Source: Mock Data";
+  if (source === "la_county_gis") return "Source: LA County Assessor";
+  return "Source: Unavailable";
 }
 
 function utilityClass(enabled: boolean) {
@@ -205,6 +206,7 @@ export function ParcelList({
   selectedParcelId,
   sort,
   loading,
+  loadingLabel,
   providerStatus,
   providerMessage,
   source,
@@ -213,13 +215,11 @@ export function ParcelList({
   onHoverParcel,
 }: ParcelListProps) {
   const hasProviderWarning = providerStatus !== "ready";
-  const isMockFallback = source === "mock" || source === "fallback";
-  const statusBadge = isMockFallback
-    ? "Mock Data Fallback"
-    : providerStatus === "empty"
-      ? "No Filter Matches"
+  const statusBadge =
+    providerStatus === "empty"
+      ? "No Official Data"
       : hasProviderWarning
-        ? "Provider Notice"
+        ? "Data Notice"
         : null;
 
   return (
@@ -228,7 +228,9 @@ export function ParcelList({
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold text-[#111817]">
             <Power className="h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-            {loading ? "Updating results" : `${parcels.length} matching lots`}
+            {loading
+              ? loadingLabel ?? "Checking official parcel records…"
+              : `${parcels.length} matching lots`}
             {statusBadge ? (
               <span className="rounded-full bg-[#fff6df] px-2 py-0.5 text-[10px] font-semibold uppercase text-[#8b6b2d]">
                 {statusBadge}

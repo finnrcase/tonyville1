@@ -51,6 +51,18 @@ export function geodesicAreaSqft(
   return sqm * SQFT_PER_SQM;
 }
 
+export function haversineMiles(a: LatLng, b: LatLng): number {
+  const earthRadiusMiles = 3958.8;
+  const dLat = toRadians(b.lat - a.lat);
+  const dLng = toRadians(b.lng - a.lng);
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const h =
+    sinLat * sinLat +
+    Math.cos(toRadians(a.lat)) * Math.cos(toRadians(b.lat)) * sinLng * sinLng;
+  return 2 * earthRadiusMiles * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 export function bboxAround(center: LatLng, radiusMiles: number): Bbox {
   const latDelta = radiusMiles * MILES_TO_DEGREES_LAT;
   const lngDelta =

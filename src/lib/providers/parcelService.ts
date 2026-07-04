@@ -1,5 +1,7 @@
 import "server-only";
-import { laCountyParcelProvider } from "@/lib/providers/laCountyParcelProvider";
+import { isWithinOfficialCoverage } from "@/lib/ingestion/coverage";
+import { searchParcelsOnDemand } from "@/lib/ingestion/onDemand";
+import { storedParcelToUiParcel } from "@/lib/ingestion/uiParcel";
 import { regridProvider } from "@/lib/providers/regridProvider";
 import type {
   Parcel,
@@ -16,6 +18,14 @@ export type ParcelCandidateSearchResult = {
   providerStatus: ParcelProviderStatus;
   providerMessage: string;
   diagnostics: ParcelSourceDiagnostics;
+};
+
+/** Customer-facing copy: no raw provider/admin language in providerMessage. */
+const CUSTOMER_MESSAGES = {
+  showingOfficial: "Showing parcels from LA County Assessor / City Planning.",
+  cached: "Using cached official records.",
+  imported: "Fresh official records were imported for this area.",
+  noData: "No official parcel data available for this area.",
 };
 
 function currentSource(source: ParcelSearchSource): ParcelSourceDiagnostics["currentSource"] {
@@ -57,7 +67,11 @@ function makeBaseDiagnostics(input: {
       regridParser: { ran: false, succeeded: false, status: "not-run" },
       laCountyRequest: { ran: false, succeeded: false, status: "not-run" },
       laCountyParser: { ran: false, succeeded: false, status: "not-run" },
-      mockFallback: { ran: false, succeeded: false, status: "not-used" },
+      mockFallback: {
+        ran: false,
+        succeeded: false,
+        status: "disabled-no-fabricated-data",
+      },
     },
   };
 }
@@ -115,29 +129,30 @@ export async function searchParcelCandidates(input: {
     };
   }
 
-  const laCounty = await laCountyParcelProvider.searchParcels({
-    ...input,
-    regridMessage: regrid.message,
-  });
-  const laFallbackReason = laCounty.diagnostic.attempted
-    ? undefined
-    : laCounty.message;
+  // On-demand official ingestion + cache (LA County coverage only for now).
+  // Coverage is decided by coordinates, not by parsing the search label.
+  const withinCoverage = isWithinOfficialCoverage(input.center);
+  const onDemand = withinCoverage
+    ? await searchParcelsOnDemand({
+        center: { lat: input.center.lat, lng: input.center.lng },
+        label: input.center.label,
+        requestedBy: "land-search",
+      })
+    : null;
+  const officialParcels = (onDemand?.parcels ?? [])
+    .map(storedParcelToUiParcel)
+    .filter((parcel): parcel is Parcel => parcel !== null);
 
-  if (laCounty.parcels.length > 0) {
-    console.info(
-      `[Tonyville parcels] Regrid returned no usable parcels; LA County GIS fallback returned ${laCounty.parcels.length} parcel(s).`,
-    );
-    const diagnostics = makeBaseDiagnostics({
-      center: input.center,
-      source: "la_county_gis",
-      fallbackReason: regridFallbackReason,
-    });
+  const applyRegridSteps = (
+    diagnostics: ParcelSourceDiagnostics,
+    fallbackTriggered: boolean,
+  ) => {
     diagnostics.steps.regridRequest = {
       ran: true,
       succeeded: regridRequestSucceeded,
       status: regrid.status,
       safeError: regrid.diagnostic?.safeErrorMessage,
-      fallbackTriggered: true,
+      fallbackTriggered,
       fallbackReason: regridFallbackReason,
     };
     diagnostics.steps.regridResponse = {
@@ -146,117 +161,82 @@ export async function searchParcelCandidates(input: {
       status: String(regrid.diagnostic?.statusCode ?? regrid.status),
       featureCount: regridFeatureCount,
       safeError: regrid.diagnostic?.safeErrorMessage,
-      fallbackTriggered: true,
+      fallbackTriggered,
       fallbackReason: regridFallbackReason,
     };
     diagnostics.steps.regridParser = {
       ran: true,
-      succeeded: true,
+      succeeded: regrid.status !== "error" && regrid.status !== "missing-key",
       status: regrid.status,
       featureCount: regridFeatureCount,
       parsedParcelCount: regrid.parcels.length,
-      fallbackTriggered: true,
+      fallbackTriggered,
       fallbackReason: regridFallbackReason,
     };
+  };
+
+  const applyOnDemandSteps = (diagnostics: ParcelSourceDiagnostics) => {
     diagnostics.steps.laCountyRequest = {
-      ran: laCounty.diagnostic.attempted,
-      succeeded: laCounty.diagnostic.ok,
-      status: laCounty.status,
-      featureCount: laCounty.diagnostic.featureCount,
-      safeError: laCounty.diagnostic.safeErrorMessage,
+      ran: Boolean(onDemand),
+      succeeded: Boolean(onDemand && officialParcels.length > 0),
+      status: !onDemand
+        ? "skipped-outside-coverage"
+        : onDemand.cacheHit
+          ? "cache-hit"
+          : onDemand.parcelsImported > 0
+            ? "cache-miss-imported"
+            : "cache-miss",
+      featureCount: onDemand?.parcels.length,
+      safeError: onDemand?.errors[0],
     };
     diagnostics.steps.laCountyParser = {
-      ran: laCounty.diagnostic.attempted,
-      succeeded: true,
-      status: "ready",
-      featureCount: laCounty.diagnostic.featureCount,
-      parsedParcelCount: laCounty.parcels.length,
-      fallbackTriggered: false,
+      ran: Boolean(onDemand),
+      succeeded: Boolean(onDemand),
+      status: onDemand ? "ready" : "not-run",
+      featureCount: onDemand?.parcels.length,
+      parsedParcelCount: officialParcels.length,
     };
+  };
+
+  if (onDemand && officialParcels.length > 0) {
+    console.info(
+      `[Tonyville parcels] On-demand official search served ${officialParcels.length} parcel(s) (${onDemand.cacheHit ? "cache hit" : `cache miss; imported ${onDemand.parcelsImported}`}, ${onDemand.durationMs}ms).`,
+    );
+    const diagnostics = makeBaseDiagnostics({
+      center: input.center,
+      source: "la_county_gis",
+      fallbackReason: regridFallbackReason,
+    });
+    applyRegridSteps(diagnostics, true);
+    applyOnDemandSteps(diagnostics);
     return {
-      parcels: laCounty.parcels,
+      parcels: officialParcels,
       source: "la_county_gis",
       providerStatus: "ready",
-      providerMessage: laCounty.message,
+      providerMessage: `${CUSTOMER_MESSAGES.showingOfficial} ${
+        onDemand.cacheHit ? CUSTOMER_MESSAGES.cached : CUSTOMER_MESSAGES.imported
+      }`,
       diagnostics,
     };
   }
 
-  if (laCounty.diagnostic.attempted && laCounty.status !== "empty") {
-    console.warn(
-      `[Tonyville parcels] LA County GIS fallback failed after Regrid ${regrid.status}: ${laCounty.message}`,
-    );
-  }
-
-  const fallbackReason = laCounty.diagnostic.attempted
-    ? `Regrid did not provide parcels (${regridFallbackReason}). LA County GIS did not provide parcels (${laCounty.message}).`
-    : `Regrid did not provide parcels (${regridFallbackReason}). LA County GIS was skipped (${laFallbackReason}).`;
-  const emptySource: ParcelSearchSource = laCounty.diagnostic.attempted
-    ? "la_county_gis"
-    : "regrid";
+  // No fabricated parcels, ever: the search is honestly empty.
+  const detailReason = !withinCoverage
+    ? `Regrid did not provide parcels (${regridFallbackReason}). This search is outside LA County coverage; no official parcel source is connected for this area yet.`
+    : `Regrid did not provide parcels (${regridFallbackReason}). On-demand official search found ${onDemand?.parcels.length ?? 0} parcel(s)${onDemand?.errors.length ? ` (${onDemand.errors[0]})` : ""}.`;
+  const emptySource: ParcelSearchSource = onDemand ? "la_county_gis" : "regrid";
   const diagnostics = makeBaseDiagnostics({
     center: input.center,
     source: emptySource,
-    fallbackReason,
+    fallbackReason: detailReason,
   });
-  diagnostics.steps.regridRequest = {
-    ran: true,
-    succeeded: regridRequestSucceeded,
-    status: regrid.status,
-    safeError: regrid.diagnostic?.safeErrorMessage,
-    fallbackTriggered: true,
-    fallbackReason: regridFallbackReason,
-  };
-  diagnostics.steps.regridResponse = {
-    ran: true,
-    succeeded: regridRequestSucceeded,
-    status: String(regrid.diagnostic?.statusCode ?? regrid.status),
-    featureCount: regridFeatureCount,
-    safeError: regrid.diagnostic?.safeErrorMessage,
-    fallbackTriggered: true,
-    fallbackReason: regridFallbackReason,
-  };
-  diagnostics.steps.regridParser = {
-    ran: true,
-    succeeded: regrid.status !== "error" && regrid.status !== "missing-key",
-    status: regrid.status,
-    featureCount: regridFeatureCount,
-    parsedParcelCount: regrid.parcels.length,
-    fallbackTriggered: true,
-    fallbackReason: regridFallbackReason,
-  };
-  diagnostics.steps.laCountyRequest = {
-    ran: laCounty.diagnostic.attempted,
-    succeeded: laCounty.diagnostic.ok,
-    status: laCounty.status,
-    featureCount: laCounty.diagnostic.featureCount,
-    safeError: laCounty.diagnostic.safeErrorMessage,
-    fallbackTriggered: true,
-    fallbackReason: laCounty.message,
-  };
-  diagnostics.steps.laCountyParser = {
-    ran: laCounty.diagnostic.attempted,
-    succeeded: laCounty.status !== "error",
-    status: laCounty.status,
-    featureCount: laCounty.diagnostic.featureCount,
-    parsedParcelCount: laCounty.parcels.length,
-    safeError: laCounty.diagnostic.safeErrorMessage,
-    fallbackTriggered: true,
-    fallbackReason: laCounty.message,
-  };
-  // Fabricated parcel data is never served. When no official or licensed
-  // source can supply parcels, the search is honestly empty.
-  diagnostics.steps.mockFallback = {
-    ran: false,
-    succeeded: false,
-    status: "disabled-no-fabricated-data",
-    fallbackReason,
-  };
+  applyRegridSteps(diagnostics, true);
+  applyOnDemandSteps(diagnostics);
 
   const emptyStatus: ParcelProviderStatus =
-    laCounty.status === "error" || regrid.status === "error"
+    onDemand?.errors.length || regrid.status === "error"
       ? "error"
-      : regrid.status === "missing-key" && !laCounty.diagnostic.attempted
+      : regrid.status === "missing-key" && !onDemand
         ? "missing-key"
         : "empty";
 
@@ -264,9 +244,7 @@ export async function searchParcelCandidates(input: {
     parcels: [],
     source: emptySource,
     providerStatus: emptyStatus,
-    providerMessage: laCounty.diagnostic.attempted
-      ? `Data unavailable for this search. Regrid ${regrid.status}: ${regrid.message} LA County GIS ${laCounty.status}: ${laCounty.message}`
-      : `Data unavailable for this search. Regrid ${regrid.status}: ${regrid.message} ${laFallbackReason ?? ""}`.trim(),
+    providerMessage: CUSTOMER_MESSAGES.noData,
     diagnostics,
   };
 }
