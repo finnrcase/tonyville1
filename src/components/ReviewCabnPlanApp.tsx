@@ -2,15 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Home,
-  Mail,
-  ShieldCheck,
-  SlidersVertical,
-} from "lucide-react";
+import { Home } from "lucide-react";
+import { CabnInteriorPreview } from "@/components/CabnInteriorPreview";
+import { SceneShell } from "@/components/flow/SceneShell";
+import { flowStepNumber } from "@/lib/flowSteps";
 import { getCabnModel } from "@/lib/cabnModels";
-import { getCabnScene } from "@/lib/cabnScenes";
 import {
   evaluateCABNFeasibility,
   feasibilityStatusLabel,
@@ -78,9 +74,6 @@ function recoveryPanel() {
 
 export function ReviewCabnPlanApp() {
   const [plan, setPlan] = useState<SelectedRoomPlan | null>(null);
-  const reviewScene = getCabnScene("feasibility_result");
-  const engineScene = getCabnScene("run_feasibility");
-  const reservationScene = getCabnScene("project_reservation");
   const selectedModel = useMemo(
     () => getCabnModel(plan?.modelId ?? "cabn-160"),
     [plan?.modelId],
@@ -175,160 +168,112 @@ export function ReviewCabnPlanApp() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f6f2] px-5 py-6 text-[#111817] sm:px-8">
-      <div className="mx-auto grid min-h-[calc(100vh-48px)] w-full max-w-7xl gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <section className="rounded-[36px] border border-white/80 bg-white p-5 shadow-[0_28px_90px_rgba(22,24,23,0.12)] sm:p-7">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <Link
-              href="/customize-room"
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#f7f6f2] px-3 text-sm font-semibold text-[#27302b] transition hover:bg-[#eef3ef]"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to Customize Room
-            </Link>
-            <span className="rounded-full bg-[#eef7f8] px-3 py-1 text-xs font-semibold uppercase tracking-[0.08em] text-[#2b6f83]">
-              Review
+    <SceneShell
+      step={flowStepNumber("review")}
+      title="Review"
+      helper="Your CABN, your property, one plan."
+      backHref="/edit-cabn?scene=built-ins"
+      continueLabel="Contact Tony"
+      onContinue={handleContactTony}
+      continueDisabled={feasibilityResult.overallStatus === "unlikely"}
+      secondary={
+        <span>No legal approval is implied by this screen.</span>
+      }
+      visual={
+        <CabnInteriorPreview
+          model={selectedModel}
+          customization={customization}
+          compact
+        />
+      }
+    >
+      <div className="grid gap-2.5">
+        <div
+          className={`rounded-[22px] border p-5 ${feasibilityTone(feasibilityResult.overallStatus)}`}
+        >
+          <div className="text-xs font-semibold uppercase tracking-[0.08em] opacity-75">
+            Feasibility
+          </div>
+          <div className="mt-1 text-2xl font-semibold">
+            {feasibilityDisplay(feasibilityResult.overallStatus)}
+          </div>
+          <p className="mt-2 text-sm font-medium leading-6">
+            {feasibilityResult.summary}
+          </p>
+        </div>
+
+        <div className="rounded-[22px] border border-hairline bg-surface p-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-base font-semibold">{selectedModel.name}</span>
+            <span className="text-sm text-ink-soft">
+              {selectedModel.widthFt} × {selectedModel.lengthFt} ft · {Math.round(placement.rotationDeg)}°
             </span>
           </div>
-
-          <div className="mt-10 max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#eef3ef] px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#203b2c]">
-              <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
-              {engineScene?.title ?? "CABN Feasibility Engine v0.1"}
-            </div>
-            <h1 className="text-5xl font-semibold tracking-[-0.03em] sm:text-6xl">
-              {reviewScene?.title ?? "Review CABN Plan"}
-            </h1>
-            <p className="mt-5 max-w-2xl text-lg font-medium leading-8 text-[#66716a]">
-              Review the CABN orientation, property context, and early screening
-              result before asking Tony to confirm the project path.
-            </p>
+          <div className="mt-3 flex items-baseline justify-between gap-3 border-t border-hairline pt-3">
+            <span className="min-w-0 truncate text-base font-semibold">
+              {plan.lot.title}
+            </span>
+            <span className="shrink-0 text-sm text-ink-soft">
+              {plan.lot.acreage ? formatAcres(plan.lot.acreage) : "—"}
+            </span>
           </div>
+          <p className="mt-1 truncate text-sm text-ink-soft">
+            {plan.lot.address ?? "Address unavailable"}
+          </p>
+        </div>
 
-          <div className={`mt-8 rounded-[30px] border p-6 ${feasibilityTone(feasibilityResult.overallStatus)}`}>
-            <div className="text-xs font-semibold uppercase opacity-75">
-              Feasibility result
-            </div>
-            <div className="mt-2 text-4xl font-semibold">
-              {feasibilityDisplay(feasibilityResult.overallStatus)}
-            </div>
-            <p className="mt-4 max-w-3xl text-sm font-medium leading-6">
-              {feasibilityResult.summary}
-            </p>
-            <p className="mt-4 rounded-2xl bg-white/60 px-4 py-3 text-sm font-semibold leading-6">
-              The GUI earns confidence. The Project Confirmation Visit earns
-              certainty.
-            </p>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <section className="rounded-[28px] bg-[#f7f6f2] p-5">
-              <div className="text-sm font-semibold text-[#27302b]">
-                Selected CABN
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            ["Window", customization.windowWall],
+            ["Door", customization.doorWall],
+            ["Desk", customization.deskWall],
+            ["Built-ins", customization.builtInsWall],
+          ].map(([label, wall]) => (
+            <div
+              key={label}
+              className="rounded-[18px] border border-hairline bg-surface p-3 text-center"
+            >
+              <div className="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink-faint">
+                {label}
               </div>
-              <div className="mt-3 text-2xl font-semibold">{selectedModel.name}</div>
-              <p className="mt-2 text-sm leading-6 text-[#66716a]">
-                {selectedModel.widthFt} x {selectedModel.lengthFt} ft ·{" "}
-                {selectedModel.squareFeet} sq ft · {Math.round(placement.rotationDeg)}°
-                rotation
-              </p>
-            </section>
-            <section className="rounded-[28px] bg-[#f7f6f2] p-5">
-              <div className="text-sm font-semibold text-[#27302b]">
-                Selected property
+              <div className="mt-1 text-sm font-semibold">
+                {wall ? `${wall[0]?.toUpperCase()}${wall.slice(1)}` : "—"}
               </div>
-              <div className="mt-3 text-2xl font-semibold">{plan.lot.title}</div>
-              <p className="mt-2 text-sm leading-6 text-[#66716a]">
-                {plan.lot.address ?? "Address unavailable"}
-                {plan.lot.acreage ? ` · ${formatAcres(plan.lot.acreage)}` : ""}
-              </p>
-            </section>
-          </div>
-
-          <section className="mt-6 rounded-[30px] bg-[#f7f6f2] p-5">
-            <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-              <SlidersVertical className="h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-              Customization choices
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {[
-                ["Window", customization.windowWall],
-                ["Door", customization.doorWall],
-                ["Desk", customization.deskWall],
-                ["Built-ins", customization.builtInsWall],
-                ["Major view", customization.majorViewWall],
-              ].map(([label, wall]) => (
-                <div key={label} className="rounded-2xl bg-white p-4">
-                  <div className="text-[11px] font-semibold uppercase text-[#7a827c]">
-                    {label}
-                  </div>
-                  <div className="mt-2 text-sm font-semibold text-[#27302b]">
-                    {wallLabel(wall)}
+          ))}
+        </div>
+
+        <details className="rounded-[22px] border border-hairline bg-surface">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-ink">
+            Rule evidence
+          </summary>
+          <div className="grid gap-2.5 border-t border-hairline px-5 py-4">
+            {feasibilityResult.rules.map((rule) => (
+              <div key={rule.ruleId} className="rounded-2xl bg-white p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="text-sm font-semibold">{rule.label}</div>
+                  <div className="shrink-0 text-xs font-semibold text-ink-soft">
+                    {feasibilityDisplay(rule.status)}
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="mt-6 rounded-[30px] bg-white p-5 ring-1 ring-[#edf0eb]">
-            <div className="text-sm font-semibold text-[#27302b]">Rule evidence</div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {feasibilityResult.rules.map((rule) => (
-                <div key={rule.ruleId} className="rounded-2xl bg-[#fbfaf7] p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="font-semibold">{rule.label}</div>
-                    <div className="text-xs font-semibold text-[#66716a]">
-                      {feasibilityDisplay(rule.status)}
-                    </div>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[#66716a]">
-                    {rule.message}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </section>
-
-        <aside className="flex flex-col gap-4 rounded-[36px] border border-white/80 bg-white p-5 shadow-[0_28px_90px_rgba(22,24,23,0.12)] lg:sticky lg:top-6 lg:max-h-[calc(100vh-48px)]">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-[#7a827c]">
-              Next step
-            </div>
-            <h2 className="mt-2 text-3xl font-semibold">
-              {reservationScene?.title ?? "Project Reservation / Contact Tony"}
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-[#66716a]">
-              If this plan is Likely or Needs Review, send Tony the property,
-              placement, and customization summary for the human review step.
+                <p className="mt-1.5 text-sm leading-6 text-ink-soft">
+                  {rule.message}
+                </p>
+              </div>
+            ))}
+            <p className="text-sm font-semibold leading-6 text-brand">
+              The GUI earns confidence. The Project Confirmation Visit earns certainty.
             </p>
           </div>
+        </details>
 
-          <div className="rounded-[26px] bg-[#f7f6f2] p-4 text-sm leading-6 text-[#56625c]">
-            <p>{reviewScene?.philosophicalObjective}</p>
-            <p className="mt-3 font-semibold text-[#203b2c]">
-              No legal approval is implied by this screen.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            disabled={feasibilityResult.overallStatus === "unlikely"}
-            onClick={handleContactTony}
-            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-5 text-sm font-semibold text-white shadow-[0_18px_45px_rgba(32,59,44,0.18)] transition hover:-translate-y-0.5 hover:bg-[#2e523e] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <Mail className="h-4 w-4" aria-hidden="true" />
-            Contact Tony
-          </button>
-
-          {feasibilityResult.overallStatus === "unlikely" ? (
-            <p className="rounded-2xl bg-[#fff0ed] p-4 text-sm font-semibold leading-6 text-[#8b3f35]">
-              This plan is currently unlikely. Manual review is recommended
-              before accepting a reservation.
-            </p>
-          ) : null}
-        </aside>
+        {feasibilityResult.overallStatus === "unlikely" ? (
+          <p className="rounded-[22px] bg-[#fff0ed] p-4 text-sm font-semibold leading-6 text-[#8b3f35]">
+            This plan is currently unlikely. Manual review is recommended before
+            accepting a reservation.
+          </p>
+        ) : null}
       </div>
-    </main>
+    </SceneShell>
   );
 }

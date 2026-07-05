@@ -8,17 +8,9 @@ import {
 } from "react";
 import Link from "next/link";
 import type mapboxgl from "mapbox-gl";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Check,
-  Home,
-  MapPinned,
-  Move,
-  RotateCw,
-  Ruler,
-  ShieldCheck,
-} from "lucide-react";
+import { MapPinned, Move, RotateCw } from "lucide-react";
+import { SceneShell } from "@/components/flow/SceneShell";
+import { flowStepNumber } from "@/lib/flowSteps";
 import { cabnModels, getCabnModel } from "@/lib/cabnModels";
 import { formatAcres } from "@/lib/format";
 import {
@@ -570,87 +562,91 @@ export function PlaceRoomApp({ mapboxToken }: PlaceRoomAppProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7f6f2] text-[#111817]">
-      <div className="grid min-h-screen lg:grid-cols-[360px_minmax(0,1fr)_360px]">
-        <aside className="z-10 flex flex-col gap-4 border-r border-[#e8ebe6] bg-white/94 p-5 shadow-[18px_0_55px_rgba(22,24,23,0.08)]">
-          <div className="flex items-center justify-between">
-            <Link
-              href={backHref}
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#f7f6f2] px-3 text-sm font-semibold text-[#27302b]"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Back to Lot Details
-            </Link>
-            <span className="rounded-full bg-[#eef7f8] px-3 py-1 text-xs font-semibold uppercase text-[#2b6f83]">
-              Place Your Room
-            </span>
-          </div>
-
-          <div>
-            <h1 className="text-3xl font-semibold">Place Your Room</h1>
-            <p className="mt-3 text-sm leading-6 text-[#66716a]">
-              Drag the white footprint around the selected property. This is a
-              lightweight planning preview, not a legal site plan.
-            </p>
-          </div>
-
-          <section className="rounded-[26px] bg-[#f7f6f2] p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <Home className="h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-              Selected room
-            </div>
-            <div className="rounded-2xl bg-white p-4">
-              <div className="text-lg font-semibold">{selectedModel.name}</div>
-              <div className="mt-1 font-mono text-sm font-semibold text-[#203b2c]">
-                {selectedModel.widthFt} x {selectedModel.lengthFt} ft ·{" "}
-                {selectedModel.squareFeet} sq ft
+    <SceneShell
+      step={flowStepNumber("place")}
+      title="Place CABN"
+      helper="Drag the footprint into position."
+      backHref={backHref}
+      continueLabel="Continue"
+      onContinue={handleCustomize}
+      continueDisabled={!placementResult.validPlacement}
+      visual={
+        <div className="relative h-full w-full">
+          {!mapboxToken ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-sunken p-6 text-center">
+              <div className="max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+                <div className="text-lg font-semibold">Map unavailable</div>
+                <p className="mt-2 text-sm leading-6 text-ink-soft">
+                  Add `NEXT_PUBLIC_MAPBOX_TOKEN` to use the placement map.
+                </p>
               </div>
-              <p className="mt-3 text-sm leading-6 text-[#66716a]">
-                {selectedModel.description}
-              </p>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {cabnModels.map((model) => {
-                const active = model.id === selectedModel.id;
-                return (
-                  <button
-                    key={model.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedModelId(model.id);
-                    }}
-                    className={`rounded-2xl border p-3 text-left text-xs font-semibold transition ${
-                      active
-                        ? "border-[#203b2c] bg-[#203b2c] text-white"
-                        : "border-[#e5e9e4] bg-white text-[#27302b]"
-                    }`}
-                  >
-                    {model.name}
-                    <span className="mt-1 block opacity-75">
-                      {model.widthFt} x {model.lengthFt}
-                    </span>
-                  </button>
-                );
-              })}
+          ) : null}
+          <div ref={mapNode} className="absolute inset-0 h-full w-full" />
+          <div className="pointer-events-none absolute bottom-5 left-5 rounded-full border border-white/70 bg-white/88 px-4 py-2 text-xs font-semibold text-[#58625c] shadow-[0_18px_55px_rgba(22,24,23,0.12)] backdrop-blur-2xl">
+            <Move className="mr-2 inline h-4 w-4 text-brand" aria-hidden="true" />
+            Drag the white footprint
+          </div>
+        </div>
+      }
+    >
+      <div className="grid gap-2.5">
+        <div className={`rounded-[22px] border p-5 ${fitTone(placementResult)}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.08em] opacity-70">
+                Placement
+              </div>
+              <div className="mt-1 text-xl font-semibold">
+                {statusMessage(placementResult)}
+              </div>
             </div>
-          </section>
+            <div className="font-mono text-3xl font-semibold">
+              {placementResult.score}
+            </div>
+          </div>
+        </div>
 
-          <section className="rounded-[26px] bg-[#f7f6f2] p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <MapPinned className="h-4 w-4 text-[#2b6f83]" aria-hidden="true" />
-              Selected lot
-            </div>
-            <div className="rounded-2xl bg-white p-4">
-              <div className="text-xs font-semibold uppercase text-[#66716a]">
+        <label className="grid gap-2 rounded-[22px] border border-hairline bg-surface p-5 text-sm font-semibold">
+          <span className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <RotateCw className="h-4 w-4 text-brand" aria-hidden="true" />
+              Rotate
+            </span>
+            <span className="font-mono">{Math.round(placement.rotationDeg)}°</span>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={359}
+            value={placement.rotationDeg}
+            onChange={(event) => {
+              setPlacement((current) => ({
+                ...current,
+                rotationDeg: Number(event.target.value),
+              }));
+            }}
+            className="w-full accent-[#22402f]"
+            aria-label="Rotate room footprint"
+          />
+        </label>
+
+        <details className="rounded-[22px] border border-hairline bg-surface">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-ink">
+            Details & adjustments
+          </summary>
+          <div className="grid gap-4 border-t border-hairline px-5 py-4 text-sm">
+            <div>
+              <div className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">
                 {sourceLabel(plan)}
               </div>
-              <div className="mt-1 font-semibold">{plan.lot.title}</div>
-              <p className="mt-1 text-sm leading-6 text-[#66716a]">
+              <div className="font-semibold">{plan.lot.title}</div>
+              <p className="mt-1 leading-6 text-ink-soft">
                 {plan.lot.address ?? "Address unavailable"}
               </p>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+              <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
                 {plan.lot.acreage ? (
-                  <span className="rounded-full bg-[#eef7f0] px-3 py-1 text-[#203b2c]">
+                  <span className="rounded-full bg-[#eef7f0] px-3 py-1 text-brand">
                     {formatAcres(plan.lot.acreage)}
                   </span>
                 ) : null}
@@ -659,182 +655,91 @@ export function PlaceRoomApp({ mapboxToken }: PlaceRoomAppProps) {
                 </span>
               </div>
             </div>
-            {plan.lot.sourceMessage ? (
-              <p className="mt-3 text-xs leading-5 text-[#66716a]">
-                {plan.lot.sourceMessage}
-              </p>
-            ) : null}
-          </section>
 
-          <section className="rounded-[26px] bg-[#f7f6f2] p-4">
-            <label className="flex items-center justify-between text-sm font-semibold">
-              <span className="flex items-center gap-2">
-                <RotateCw className="h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-                Rotation
-              </span>
-              <span className="font-mono">{Math.round(placement.rotationDeg)}°</span>
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={359}
-              value={placement.rotationDeg}
-              onChange={(event) => {
-                setPlacement((current) => ({
-                  ...current,
-                  rotationDeg: Number(event.target.value),
-                }));
-              }}
-              className="mt-3 w-full accent-[#203b2c]"
-              aria-label="Rotate room footprint"
-            />
-            <p className="mt-2 text-xs leading-5 text-[#66716a]">
-              Rotation is approximate for MVP placement and will become more exact
-              in the customization stage.
-            </p>
-          </section>
-        </aside>
-
-        <section className="relative min-h-[60vh] lg:min-h-screen">
-          {!mapboxToken ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#e8ebe6] p-6 text-center">
-              <div className="max-w-sm rounded-3xl bg-white p-6 shadow-xl">
-                <div className="text-lg font-semibold">Mapbox token missing</div>
-                <p className="mt-2 text-sm leading-6 text-[#66716a]">
-                  Add `NEXT_PUBLIC_MAPBOX_TOKEN` to use the placement map.
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="font-semibold">Existing structures</span>
+                <button
+                  type="button"
+                  onClick={() => setMarkMode((active) => !active)}
+                  className={`rounded-2xl px-3 py-2 text-xs font-semibold ${
+                    markMode ? "bg-brand text-white" : "bg-white text-ink"
+                  }`}
+                >
+                  {markMode ? "Click map" : "Mark structure"}
+                </button>
+              </div>
+              {structures.length ? (
+                <ul className="grid gap-2 text-ink-soft">
+                  {structures.map((structure) => (
+                    <li key={structure.id} className="rounded-2xl bg-white px-3 py-2">
+                      {structure.label} · {structure.source}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-2xl bg-white px-3 py-2 leading-6 text-ink-soft">
+                  {structuresAvailable
+                    ? "No existing structures are known for this lot."
+                    : "Structure data unavailable — placement requires verification."}
                 </p>
+              )}
+            </div>
+
+            <div>
+              <div className="mb-2 font-semibold">CABN model</div>
+              <div className="grid grid-cols-2 gap-2">
+                {cabnModels.map((model) => {
+                  const active = model.id === selectedModel.id;
+                  return (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onClick={() => setSelectedModelId(model.id)}
+                      className={`rounded-2xl border p-3 text-left text-xs font-semibold transition ${
+                        active
+                          ? "border-brand bg-brand text-white"
+                          : "border-hairline bg-white text-ink"
+                      }`}
+                    >
+                      {model.name}
+                      <span className="mt-1 block opacity-75">
+                        {model.widthFt} x {model.lengthFt}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ) : null}
-          <div ref={mapNode} className="absolute inset-0 h-full min-h-[60vh] w-full lg:min-h-screen" />
-          <div className="pointer-events-none absolute bottom-5 left-5 rounded-full border border-white/70 bg-white/88 px-4 py-2 text-xs font-semibold text-[#58625c] shadow-[0_18px_55px_rgba(22,24,23,0.12)] backdrop-blur-2xl">
-            <Move className="mr-2 inline h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-            Drag the white room footprint
-          </div>
-        </section>
 
-        <aside className="z-10 flex flex-col gap-4 border-l border-[#e8ebe6] bg-white/94 p-5 shadow-[-18px_0_55px_rgba(22,24,23,0.08)]">
-          <div className={`rounded-[26px] border p-4 ${fitTone(placementResult)}`}>
-            <div className="flex items-start justify-between gap-3">
+            <div className="grid gap-3">
               <div>
-                <div className="text-sm font-semibold">Live placement status</div>
-                <div className="mt-1 text-2xl font-semibold">
-                  {statusMessage(placementResult)}
-                </div>
+                <h2 className="mb-1.5 font-semibold">Blockers</h2>
+                <ul className="grid gap-1.5 text-[#8b3f35]">
+                  {listItems(placementResult.blockers, "No hard blockers detected.")}
+                </ul>
               </div>
-              <div className="font-mono text-3xl font-semibold">
-                {placementResult.score}
+              <div>
+                <h2 className="mb-1.5 font-semibold">Warnings</h2>
+                <ul className="grid gap-1.5 text-[#715520]">
+                  {listItems(placementResult.warnings, "No warnings yet.")}
+                </ul>
               </div>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
-              <span className="rounded-full bg-white/65 px-3 py-1">
-                {placementResult.status}
-              </span>
-              <span className="rounded-full bg-white/65 px-3 py-1">
-                Confidence: {placementResult.confidence}
-              </span>
+              <div>
+                <h2 className="mb-1.5 font-semibold">Unknowns</h2>
+                <ul className="grid gap-1.5 text-ink-soft">
+                  {listItems(placementResult.unknowns, "No unknowns yet.")}
+                </ul>
+              </div>
+              <ul className="grid gap-1.5 leading-5 text-ink-soft">
+                <li>Room footprint must stay inside the lot boundary.</li>
+                <li>Keep at least 5 ft from known structures.</li>
+                <li>Do not overlap known existing structures.</li>
+              </ul>
             </div>
           </div>
-
-          <section className="rounded-[26px] bg-[#f7f6f2] p-4">
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <Ruler className="h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-              Placement rules
-            </div>
-            <ul className="grid gap-2 text-sm leading-5 text-[#56625c]">
-              <li>Room footprint must stay inside the lot boundary.</li>
-              <li>Keep at least 5 ft from known structures.</li>
-              <li>Do not overlap known existing structures.</li>
-              <li>Basic setback screening uses the selected model rules.</li>
-            </ul>
-          </section>
-
-          <section className="rounded-[26px] bg-[#f7f6f2] p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold">Existing structures</div>
-              <button
-                type="button"
-                onClick={() => setMarkMode((active) => !active)}
-                className={`rounded-2xl px-3 py-2 text-xs font-semibold ${
-                  markMode
-                    ? "bg-[#203b2c] text-white"
-                    : "bg-white text-[#27302b]"
-                }`}
-              >
-                {markMode ? "Click map" : "Mark structure"}
-              </button>
-            </div>
-            {structures.length ? (
-              <ul className="grid gap-2 text-sm text-[#56625c]">
-                {structures.map((structure) => (
-                  <li key={structure.id} className="rounded-2xl bg-white px-3 py-2">
-                    {structure.label} · {structure.source}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="rounded-2xl bg-white px-3 py-2 text-sm leading-6 text-[#66716a]">
-                {structuresAvailable
-                  ? "No existing structures are known for this lot."
-                  : "Structure data unavailable — placement requires verification."}
-              </p>
-            )}
-          </section>
-
-          <section className="grid gap-3 overflow-y-auto rounded-[26px] bg-white p-4 text-sm premium-scrollbar">
-            <div>
-              <h2 className="mb-2 font-semibold">Blockers</h2>
-              <ul className="grid gap-1.5 text-[#8b3f35]">
-                {listItems(placementResult.blockers, "No hard blockers detected.")}
-              </ul>
-            </div>
-            <div>
-              <h2 className="mb-2 font-semibold">Warnings</h2>
-              <ul className="grid gap-1.5 text-[#715520]">
-                {listItems(placementResult.warnings, "No warnings yet.")}
-              </ul>
-            </div>
-            <div>
-              <h2 className="mb-2 font-semibold">Unknowns</h2>
-              <ul className="grid gap-1.5 text-[#56625c]">
-                {listItems(placementResult.unknowns, "No unknowns yet.")}
-              </ul>
-            </div>
-          </section>
-
-          {plan.lot.boundaryIsEstimated || !structuresAvailable ? (
-            <div className="flex items-start gap-2 rounded-[22px] bg-[#fff6df] p-4 text-sm leading-6 text-[#715520]">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>
-                {plan.lot.boundaryIsEstimated
-                  ? "Boundary is estimated. "
-                  : ""}
-                {!structuresAvailable
-                  ? "Structure data unavailable — manual verification required."
-                  : "Confirm dimensions and setbacks before build planning."}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-start gap-2 rounded-[22px] bg-[#eef7f0] p-4 text-sm leading-6 text-[#203b2c]">
-              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-              <span>
-                Parcel boundary is available. Continue only after reviewing the
-                early-screening rules.
-              </span>
-            </div>
-          )}
-
-          <button
-            type="button"
-            disabled={!placementResult.validPlacement}
-            onClick={handleCustomize}
-            className="inline-flex min-h-14 items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#2e523e] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <Check className="h-4 w-4" aria-hidden="true" />
-            Next: Customize Room
-          </button>
-        </aside>
+        </details>
       </div>
-    </main>
+    </SceneShell>
   );
 }

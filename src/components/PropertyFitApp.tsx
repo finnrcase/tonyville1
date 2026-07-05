@@ -12,15 +12,14 @@ import {
 import type mapboxgl from "mapbox-gl";
 import {
   AlertTriangle,
-  ArrowLeft,
   LoaderCircle,
   Mail,
-  MapPin,
-  MapPinned,
   RotateCw,
   Search,
 } from "lucide-react";
-import Link from "next/link";
+import { SceneShell } from "@/components/flow/SceneShell";
+import { buttonClass } from "@/components/ui/Button";
+import { flowStepNumber } from "@/lib/flowSteps";
 import { cabnModels, getCabnModel, type CABNModel } from "@/lib/cabnModels";
 import { formatAcres } from "@/lib/format";
 import {
@@ -638,249 +637,218 @@ export function PropertyFitApp({
     [address],
   );
 
+  const phase: "enter" | "confirm" = parcelResponse ? "confirm" : "enter";
+
+  const mapVisual = (
+    <div className="relative h-full w-full">
+      {!mapboxToken ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-sunken p-6 text-center">
+          <div className="max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+            <div className="text-lg font-semibold">Map unavailable</div>
+            <p className="mt-2 text-sm leading-6 text-ink-soft">
+              Add `NEXT_PUBLIC_MAPBOX_TOKEN` to see your property.
+            </p>
+          </div>
+        </div>
+      ) : null}
+      <div ref={mapNode} className="absolute inset-0 h-full w-full" />
+      {phase === "confirm" ? (
+        <div className="pointer-events-none absolute bottom-5 left-5 rounded-full border border-white/70 bg-white/85 px-4 py-2 text-xs font-semibold text-[#58625c] shadow-[0_18px_55px_rgba(22,24,23,0.12)] backdrop-blur-2xl">
+          Drag the CABN footprint
+        </div>
+      ) : null}
+    </div>
+  );
+
+  if (phase === "enter") {
+    return (
+      <SceneShell
+        step={flowStepNumber("address")}
+        title="Enter your address"
+        helper="We’ll find your property in official records."
+        visual={mapVisual}
+        backHref="/"
+      >
+        <form onSubmit={loadProperty} className="grid gap-3">
+          <input
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            placeholder="100 W 1st St, Los Angeles, CA"
+            aria-label="Property address"
+            className="h-14 w-full rounded-[22px] border border-hairline bg-white px-5 text-base outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/15"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className={buttonClass("primary", "lg", "w-full")}
+          >
+            {loading ? (
+              <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Search className="h-5 w-5" aria-hidden="true" />
+            )}
+            {loading ? "Searching…" : "Find my property"}
+          </button>
+          <p className="text-sm leading-6 text-ink-soft">{message}</p>
+        </form>
+      </SceneShell>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-[#f7f6f2] text-[#111817]">
-      <div className="grid min-h-screen lg:grid-cols-[430px_minmax(0,1fr)]">
-        <aside className="z-10 flex flex-col gap-4 border-r border-[#e8ebe6] bg-white/94 p-5 shadow-[18px_0_55px_rgba(22,24,23,0.08)]">
-          <div className="flex items-center justify-between">
-            <Link
-              href="/"
-              className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[#f7f6f2] px-3 text-sm font-semibold text-[#27302b]"
-            >
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              Start
-            </Link>
-            <span className="rounded-full bg-[#eef7f8] px-3 py-1 text-xs font-semibold uppercase text-[#2b6f83]">
-              Property fit
-            </span>
+    <SceneShell
+      step={flowStepNumber("property")}
+      title="Confirm property"
+      helper={parcelResponse?.parcel.address ?? undefined}
+      visual={mapVisual}
+      onBack={() => {
+        setParcelResponse(null);
+        setMarkMode(false);
+      }}
+      continueLabel="Place CABN"
+      onContinue={handleSelectProperty}
+      secondary={
+        <a
+          href={buildPlacementMailto({
+            address: address || "Address not searched yet",
+            model: selectedModel,
+            result: placementResult,
+          })}
+          onClick={handlePlacementInquiry}
+          className="inline-flex items-center gap-1.5 font-semibold text-brand underline-offset-4 hover:underline"
+        >
+          <Mail className="h-4 w-4" aria-hidden="true" />
+          Ask Tony about this placement
+        </a>
+      }
+    >
+      <div className="grid gap-2.5">
+        <div className="rounded-[22px] border border-hairline bg-surface p-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">
+            {sourceLabel(parcelResponse?.source)}
           </div>
-
-          <div>
-            <h1 className="text-3xl font-semibold">
-              Place a CABN on your property
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-[#66716a]">
-              Early screening only. Drag the CABN footprint, rotate it, and
-              review what data still needs manual confirmation.
-            </p>
+          <div className="mt-1 text-base font-semibold">
+            {parcelResponse?.parcel.title}
           </div>
-
-          <form onSubmit={loadProperty} className="rounded-[26px] bg-[#f7f6f2] p-3">
-            <label className="mb-2 flex items-center gap-2 text-sm font-semibold">
-              <MapPin className="h-4 w-4 text-[#2b6f83]" aria-hidden="true" />
-              Address
-            </label>
-            <div className="flex gap-2">
-              <input
-                value={address}
-                onChange={(event) => setAddress(event.target.value)}
-                placeholder="100 W 1st St, Los Angeles, CA"
-                className="h-12 min-w-0 flex-1 rounded-2xl border border-[#e5e9e4] bg-white px-4 text-sm outline-none focus:border-[#8fb9c9] focus:ring-4 focus:ring-[#b9d7e7]/35"
-              />
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#203b2c] text-white disabled:opacity-60"
-                aria-label="Search property"
-              >
-                {loading ? (
-                  <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Search className="h-4 w-4" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-            <p className="mt-2 text-xs font-medium leading-5 text-[#66716a]">
-              {message}
-            </p>
-          </form>
-
-          <div className="rounded-[26px] bg-[#f7f6f2] p-3">
-            <div className="mb-2 text-sm font-semibold">CABN model</div>
-            <div className="grid grid-cols-2 gap-2">
-              {cabnModels.map((model) => {
-                const active = model.id === selectedModel.id;
-                return (
-                  <button
-                    key={model.id}
-                    type="button"
-                    onClick={() => setSelectedModelId(model.id)}
-                    className={`rounded-2xl border p-3 text-left text-sm font-semibold transition ${
-                      active
-                        ? "border-[#203b2c] bg-[#203b2c] text-white"
-                        : "border-[#e5e9e4] bg-white text-[#27302b]"
-                    }`}
-                  >
-                    {model.name}
-                    <span className="mt-1 block text-xs opacity-75">
-                      {model.widthFt} x {model.lengthFt} ft
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+          <div className="mt-1 text-sm text-ink-soft">
+            {parcelResponse ? formatAcres(parcelResponse.parcel.acreage) : null}
           </div>
+        </div>
 
-          <section className="rounded-[28px] border border-[#ebe6dc] bg-[#fbf7ed] p-5 shadow-[0_16px_45px_rgba(22,24,23,0.055)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-base font-semibold text-[#203b2c]">
-                  Usable Yard Area
-                </h2>
-                {usableYardEstimate.unavailable ? (
-                  <div className="mt-4 text-2xl font-semibold tracking-[-0.02em] text-[#1c1e1b]">
-                    Usable yard estimate unavailable
-                  </div>
-                ) : (
-                  <div className="mt-4">
-                    {usableYardEstimate.preliminary ? (
-                      <div className="mb-2 inline-flex rounded-full bg-white px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#66716a]">
-                        Preliminary estimate
-                      </div>
-                    ) : null}
-                    <div className="text-sm font-medium text-[#66716a]">
-                      Estimated usable yard
-                    </div>
-                    <div className="mt-1 font-mono text-4xl font-semibold tracking-[-0.04em] text-[#203b2c]">
-                      {usableYardEstimate.sqft?.toLocaleString()} sq ft
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <p className="mt-4 text-sm leading-6 text-[#56625c]">
-              {usableYardEstimate.unavailable
-                ? "Add or confirm structures to improve the estimate."
-                : usableYardEstimate.preliminary
-                  ? "Based on lot area only. Add or confirm structures to improve the estimate."
-                  : "Based on the selected property boundary, existing structures, and required clearance. Final placement must be verified during the Project Confirmation Visit."}
-            </p>
-
-            {parcelResponse ? (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setMarkMode((active) => !active)}
-                  className={`inline-flex min-h-11 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
-                    markMode
-                      ? "bg-[#203b2c] text-white"
-                      : "bg-white text-[#27302b]"
-                  }`}
-                >
-                  {markMode ? "Click map to add structure" : "Mark structure"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStructuresConfirmed(true)}
-                  className={`inline-flex min-h-11 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
-                    structuresConfirmed
-                      ? "bg-[#eef7f0] text-[#203b2c]"
-                      : "bg-white text-[#27302b]"
-                  }`}
-                >
-                  Confirm structures
-                </button>
-                {structures.length ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setStructures([]);
-                      setStructuresConfirmed(false);
-                    }}
-                    className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-3 text-sm font-semibold text-[#56625c] transition sm:col-span-2"
-                  >
-                    Clear {structures.length} marked structure
-                    {structures.length === 1 ? "" : "s"}
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </section>
-
-          <div className="rounded-[26px] bg-[#f7f6f2] p-3">
-            <label className="flex items-center justify-between text-sm font-semibold">
-              <span className="flex items-center gap-2">
-                <RotateCw className="h-4 w-4 text-[#203b2c]" aria-hidden="true" />
-                Rotation
+        <div className="rounded-[22px] border border-hairline bg-surface p-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">
+            Usable yard
+          </div>
+          <div className="mt-1 text-2xl font-semibold text-brand">
+            {usableYardEstimate.unavailable
+              ? "Data unavailable"
+              : `${usableYardEstimate.sqft?.toLocaleString()} sq ft`}
+            {usableYardEstimate.preliminary && !usableYardEstimate.unavailable ? (
+              <span className="ml-2 align-middle text-xs font-semibold uppercase tracking-[0.08em] text-ink-faint">
+                Preliminary
               </span>
-              <span className="font-mono">{Math.round(placement.rotationDeg)}°</span>
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={359}
-              value={placement.rotationDeg}
-              onChange={(event) =>
-                setPlacement((current) => ({
-                  ...current,
-                  rotationDeg: Number(event.target.value),
-                }))
-              }
-              className="mt-3 w-full accent-[#203b2c]"
-              aria-label="Rotate CABN footprint"
-            />
+            ) : null}
           </div>
+        </div>
 
-          {parcelResponse ? (
-            <div className="rounded-[26px] border border-[#e7ebe6] bg-white p-4">
-              <div className="mb-2 text-xs font-semibold uppercase text-[#66716a]">
-                {sourceLabel(parcelResponse.source)}
-              </div>
-              <div className="font-semibold">{parcelResponse.parcel.title}</div>
-              <div className="mt-1 text-sm text-[#66716a]">
-                {formatAcres(parcelResponse.parcel.acreage)} · {parcelResponse.parcel.address}
-              </div>
-              {!parcelResponse.existingStructuresAvailable ? (
-                <p className="mt-3 flex gap-2 rounded-2xl bg-[#fff6df] p-3 text-sm leading-5 text-[#715520]">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                  Existing structures unavailable — manual review needed.
-                </p>
+        {parcelResponse && !parcelResponse.existingStructuresAvailable ? (
+          <p className="flex gap-2 rounded-[22px] bg-[#fff6df] p-4 text-sm leading-5 text-[#715520]">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            Existing structures unavailable — mark them below if needed.
+          </p>
+        ) : null}
+
+        <details className="rounded-[22px] border border-hairline bg-surface">
+          <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-ink">
+            Adjust placement & model
+          </summary>
+          <div className="grid gap-4 border-t border-hairline px-5 py-4">
+            <label className="grid gap-2 text-sm font-semibold">
+              <span className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <RotateCw className="h-4 w-4 text-brand" aria-hidden="true" />
+                  Rotation
+                </span>
+                <span className="font-mono">{Math.round(placement.rotationDeg)}°</span>
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={359}
+                value={placement.rotationDeg}
+                onChange={(event) =>
+                  setPlacement((current) => ({
+                    ...current,
+                    rotationDeg: Number(event.target.value),
+                  }))
+                }
+                className="w-full accent-[#22402f]"
+                aria-label="Rotate CABN footprint"
+              />
+            </label>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setMarkMode((active) => !active)}
+                className={`inline-flex min-h-11 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
+                  markMode ? "bg-brand text-white" : "bg-white text-ink"
+                }`}
+              >
+                {markMode ? "Click map to add" : "Mark structure"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setStructuresConfirmed(true)}
+                className={`inline-flex min-h-11 items-center justify-center rounded-2xl px-3 text-sm font-semibold transition ${
+                  structuresConfirmed ? "bg-[#eef7f0] text-brand" : "bg-white text-ink"
+                }`}
+              >
+                Confirm structures
+              </button>
+              {structures.length ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStructures([]);
+                    setStructuresConfirmed(false);
+                  }}
+                  className="col-span-2 inline-flex min-h-11 items-center justify-center rounded-2xl bg-white px-3 text-sm font-semibold text-ink-soft"
+                >
+                  Clear {structures.length} marked structure
+                  {structures.length === 1 ? "" : "s"}
+                </button>
               ) : null}
             </div>
-          ) : null}
 
-          <button
-            type="button"
-            disabled={!parcelResponse}
-            onClick={handleSelectProperty}
-            className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-4 py-4 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#2e523e] disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            <MapPinned className="h-4 w-4" aria-hidden="true" />
-            {parcelResponse ? "Select Lot" : "Search an address to select lot"}
-          </button>
-
-          <a
-            href={buildPlacementMailto({
-              address: address || "Address not searched yet",
-              model: selectedModel,
-              result: placementResult,
-            })}
-            onClick={handlePlacementInquiry}
-            className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-[#203b2c] px-4 py-4 text-sm font-semibold text-white"
-          >
-            <Mail className="h-4 w-4" aria-hidden="true" />
-            Ask Tony about this placement
-          </a>
-        </aside>
-
-        <section className="relative min-h-screen">
-          {!mapboxToken ? (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#e8ebe6] p-6 text-center">
-              <div className="max-w-sm rounded-3xl bg-white p-6 shadow-xl">
-                <div className="text-lg font-semibold">Mapbox token missing</div>
-                <p className="mt-2 text-sm leading-6 text-[#66716a]">
-                  Add `NEXT_PUBLIC_MAPBOX_TOKEN` to use the placement map.
-                </p>
+            <div>
+              <div className="mb-2 text-sm font-semibold">CABN model</div>
+              <div className="grid grid-cols-2 gap-2">
+                {cabnModels.map((model) => {
+                  const active = model.id === selectedModel.id;
+                  return (
+                    <button
+                      key={model.id}
+                      type="button"
+                      onClick={() => setSelectedModelId(model.id)}
+                      className={`rounded-2xl border p-3 text-left text-sm font-semibold transition ${
+                        active
+                          ? "border-brand bg-brand text-white"
+                          : "border-hairline bg-white text-ink"
+                      }`}
+                    >
+                      {model.name}
+                      <span className="mt-1 block text-xs opacity-75">
+                        {model.widthFt} x {model.lengthFt} ft
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          ) : null}
-          <div ref={mapNode} className="absolute inset-0 h-full min-h-screen w-full" />
-          <div className="pointer-events-none absolute bottom-5 left-5 rounded-full border border-white/70 bg-white/85 px-4 py-2 text-xs font-semibold text-[#58625c] shadow-[0_18px_55px_rgba(22,24,23,0.12)] backdrop-blur-2xl">
-            Drag the CABN footprint · Early screening only
           </div>
-        </section>
+        </details>
       </div>
-    </main>
+    </SceneShell>
   );
 }

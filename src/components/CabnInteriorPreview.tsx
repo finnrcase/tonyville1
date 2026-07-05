@@ -15,6 +15,8 @@ type CabnInteriorPreviewProps = {
   model: CABNModel;
   customization: CABNCustomization;
   placementInferred?: boolean;
+  /** Staged-flow mode: fills its container without a minimum height or footer. */
+  compact?: boolean;
 };
 
 /**
@@ -880,6 +882,7 @@ export function CabnInteriorPreview({
   model,
   customization,
   placementInferred,
+  compact,
 }: CabnInteriorPreviewProps) {
   const room: RoomDimensions = {
     widthFt: model.widthFt,
@@ -949,7 +952,13 @@ export function CabnInteriorPreview({
     (Math.atan2(g.isoX, g.isoY) * 180) / Math.PI;
 
   return (
-    <div className="overflow-hidden rounded-[34px] border border-white/70 bg-[#f2efe6] shadow-[0_30px_90px_rgba(22,24,23,0.12)]">
+    <div
+      className={
+        compact
+          ? "flex h-full w-full flex-col overflow-hidden bg-[#f2efe6]"
+          : "overflow-hidden rounded-[34px] border border-white/70 bg-[#f2efe6] shadow-[0_30px_90px_rgba(22,24,23,0.12)]"
+      }
+    >
       <style>{`
         @keyframes cabn-item-in {
           from { opacity: 0; transform: translateY(-7px); }
@@ -957,12 +966,17 @@ export function CabnInteriorPreview({
         }
         .cabn-item-in { animation: cabn-item-in 0.5s cubic-bezier(0.22, 0.61, 0.36, 1); }
       `}</style>
-      <div className="relative min-h-[540px]">
+      <div className={compact ? "relative min-h-0 flex-1" : "relative min-h-[540px]"}>
         <svg
           viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
           role="img"
           aria-label="Bird's-eye view into the CABN interior showing the window, door, desk, and built-ins on their selected walls"
-          className="block h-full min-h-[540px] w-full"
+          preserveAspectRatio="xMidYMid meet"
+          className={
+            compact
+              ? "block h-full w-full"
+              : "block h-full min-h-[540px] w-full"
+          }
         >
           <defs>
             <radialGradient id="cabn-backdrop" cx="50%" cy="44%" r="65%">
@@ -1123,8 +1137,14 @@ export function CabnInteriorPreview({
         <div className="pointer-events-none absolute left-5 top-5 rounded-full border border-white/60 bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#475149] shadow-sm backdrop-blur">
           {placementInferred ? "Placement needs review" : "Roof hidden · bird's-eye view"}
         </div>
+        {compact ? (
+          <div className="pointer-events-none absolute bottom-5 right-5 rounded-full border border-white/60 bg-white/85 px-4 py-2 text-xs font-semibold text-[#56625c] shadow-sm backdrop-blur">
+            {model.widthFt}&prime; &times; {model.lengthFt}&prime; &middot; {model.squareFeet} sq ft
+          </div>
+        ) : null}
       </div>
 
+      {compact ? null : (
       <div className="border-t border-white/70 bg-[#fffefb]/92 p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
@@ -1147,6 +1167,7 @@ export function CabnInteriorPreview({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }
